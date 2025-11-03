@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      collaboration_requests: {
+        Row: {
+          created_at: string
+          id: string
+          message: string | null
+          receiver_id: string
+          sender_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          receiver_id: string
+          sender_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          receiver_id?: string
+          sender_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaboration_requests_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaboration_requests_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       matches: {
         Row: {
           brand_id: string
@@ -59,14 +104,54 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          read: boolean
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          read?: boolean
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          read?: boolean
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
           email: string
+          engagement_rate: number | null
           follower_count: number | null
           full_name: string
           handle: string | null
           id: string
+          location: string | null
           marketing_budget: number | null
           niche: string | null
           profile_completed: boolean | null
@@ -77,10 +162,12 @@ export type Database = {
         Insert: {
           created_at?: string
           email: string
+          engagement_rate?: number | null
           follower_count?: number | null
           full_name: string
           handle?: string | null
           id?: string
+          location?: string | null
           marketing_budget?: number | null
           niche?: string | null
           profile_completed?: boolean | null
@@ -91,10 +178,12 @@ export type Database = {
         Update: {
           created_at?: string
           email?: string
+          engagement_rate?: number | null
           follower_count?: number | null
           full_name?: string
           handle?: string | null
           id?: string
+          location?: string | null
           marketing_budget?: number | null
           niche?: string | null
           profile_completed?: boolean | null
@@ -103,6 +192,42 @@ export type Database = {
           user_type?: string
         }
         Relationships: []
+      }
+      saved_matches: {
+        Row: {
+          created_at: string
+          id: string
+          saved_profile_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          saved_profile_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          saved_profile_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_matches_saved_profile_id_fkey"
+            columns: ["saved_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_matches_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
