@@ -11,7 +11,9 @@ import { AnalyticsDashboard } from "./dashboard/AnalyticsDashboard";
 import { ChatModal } from "./dashboard/ChatModal";
 import { PremiumCard } from "./dashboard/PremiumCard";
 import { NotificationBell } from "./dashboard/NotificationBell";
+import { ProfileChecklistModal } from "./dashboard/ProfileChecklistModal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { computeProfileCompletion } from "@/lib/profileCompletion";
 
 interface Profile {
   id: string;
@@ -69,6 +71,7 @@ export const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatRecipient, setChatRecipient] = useState("");
+  const [checklistOpen, setChecklistOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -128,6 +131,18 @@ export const Dashboard = () => {
         .or(`sender_id.eq.${profileData.id},receiver_id.eq.${profileData.id}`)
         .order("created_at", { ascending: false });
       setCollabRequests(requestsData || []);
+
+      // Show toast if profile completion is low
+      const completion = computeProfileCompletion(profileData);
+      if (completion.percentage < 70) {
+        setTimeout(() => {
+          toast({
+            title: "Complete Your Profile",
+            description: "Reach 70%+ completion for better matches.",
+            duration: 5000,
+          });
+        }, 1000);
+      }
     } catch (error) {
       console.error("Error fetching data:", error);
       toast({
@@ -281,23 +296,6 @@ export const Dashboard = () => {
     }
   };
 
-  const calculateProfileCompletion = () => {
-    if (!profile) return 0;
-    let completed = 0;
-    const fields = ["full_name", "handle", "niche", "location"];
-    
-    if (profile.user_type === "creator") {
-      fields.push("follower_count", "engagement_rate");
-    } else {
-      fields.push("marketing_budget");
-    }
-
-    fields.forEach((field) => {
-      if (profile[field as keyof Profile]) completed++;
-    });
-
-    return Math.round((completed / fields.length) * 100);
-  };
 
   if (loading) {
     return (
@@ -307,7 +305,8 @@ export const Dashboard = () => {
     );
   }
 
-  const profileCompletion = calculateProfileCompletion();
+  const completionData = profile ? computeProfileCompletion(profile) : { percentage: 0, checklist: [] };
+  const profileCompletion = completionData.percentage;
   const isCreator = profile?.user_type === "creator";
 
   const analytics = {
@@ -353,14 +352,18 @@ export const Dashboard = () => {
           <CardContent>
             <div className="space-y-4">
               <Progress value={profileCompletion} className="h-3" />
-              <p className="text-sm text-muted-foreground">
-                {profileCompletion}% complete
-              </p>
-              {profileCompletion < 100 && (
-                <Button variant="outline" className="w-full sm:w-auto">
-                  Complete Profile
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  {profileCompletion}% complete
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setChecklistOpen(true)}
+                >
+                  View Checklist
                 </Button>
-              )}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -544,6 +547,13 @@ export const Dashboard = () => {
         isOpen={chatOpen}
         onClose={() => setChatOpen(false)}
         recipientName={chatRecipient}
+      />
+      
+      <ProfileChecklistModal
+        open={checklistOpen}
+        onOpenChange={setChecklistOpen}
+        completionData={completionData}
+        userType={isCreator ? "creator" : "brand"}
       />
     </div>
   );
