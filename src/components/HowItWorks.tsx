@@ -36,19 +36,19 @@ export const HowItWorks = () => {
                 number="2"
                 icon={Search}
                 title="Get Matched"
-                description="Our AI analyzes your content style and audience to find campaigns that perfectly align with your niche."
+                description="Our AI intelligently analyzes your content style and audience to find campaigns that perfectly align with your niche."
               />
               <StepCard
                 number="3"
                 icon={Handshake}
                 title="Review & Connect"
-                description="Browse matched campaigns, see transparent budgets, and connect directly with brands you love."
+                description="Browse matched campaigns, see transparent budgets, and connect directly with brands you truly love."
               />
               <StepCard
                 number="4"
                 icon={TrendingUp}
                 title="Create & Earn"
-                description="Deliver your content, track performance in real-time, and receive payment securely through our platform."
+                description="Deliver your content, track performance in real-time, and receive payment securely through our streamlined and reliable platform."
               />
             </div>
           </TabsContent>
@@ -59,24 +59,24 @@ export const HowItWorks = () => {
                 number="1"
                 icon={UserPlus}
                 title="Post Campaign"
-                description="Define your campaign goals, budget, target audience, and content requirements in minutes."
+                description="Define your campaign goals, budget, target audience, and content requirements in just a few minutes."
               />
               <StepCard
                 number="2"
                 icon={Search}
                 title="Get Recommendations"
-                description="Receive AI-curated creator recommendations based on audience fit, engagement quality, and past performance."
+                description="Receive AI-curated creator recommendations based on quality and performance metrics."
               />
               <StepCard
                 number="3"
                 icon={Handshake}
                 title="Review & Select"
-                description="Browse creator portfolios, compare metrics, and shortlist the perfect creators for your campaign."
+                description="Browse creator portfolios, compare metrics, and shortlist the perfect creators for your campaign in a jiffy."
               />
               <StepCard
                 number="4"
                 icon={TrendingUp}
-                title="Launch & Measure"
+                title="Launch & Track"
                 description="Manage collaborations, track campaign analytics, and measure ROI with detailed performance reports."
               />
             </div>
