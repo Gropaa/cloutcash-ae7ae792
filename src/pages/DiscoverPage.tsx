@@ -16,7 +16,7 @@ import { toast } from '@/hooks/use-toast';
 export default function DiscoverPage() {
   const { candidates, loading, fetchMore, hasMore, updateFilters, refetch } = useMatchFeed('brand');
   const { recordFeedback } = useFeedback();
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [swipedCardIds, setSwipedCardIds] = useState<Set<string>>(new Set());
   const [isApplyingFilters, setIsApplyingFilters] = useState(false);
   const [exitDirection, setExitDirection] = useState<'left' | 'right' | 'up' | null>(null);
 
@@ -27,37 +27,42 @@ export default function DiscoverPage() {
   const [filterEngagement, setFilterEngagement] = useState([0]);
   const [filterFollowers, setFilterFollowers] = useState([0]);
 
-  const currentCandidate = candidates[currentIndex];
+  // Filter out swiped cards
+  const activeCards = candidates.filter(c => !swipedCardIds.has(c.item.id));
+  const currentCandidate = activeCards[0];
+  
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const rotate = useTransform(x, [-300, 300], [-25, 25]);
   const opacity = useTransform(x, [-300, -150, 0, 150, 300], [0, 1, 1, 1, 0]);
 
-  // Reset exit direction after animation
+  // Load more cards when running low
   useEffect(() => {
-    if (exitDirection) {
-      const timer = setTimeout(() => setExitDirection(null), 300);
-      return () => clearTimeout(timer);
-    }
-  }, [exitDirection]);
-
-  const handleSwipe = async (direction: 'left' | 'right' | 'up') => {
-    if (!currentCandidate) return;
-
-    setExitDirection(direction);
-    
-    const interactionType = direction === 'right' ? 'like' : direction === 'up' ? 'superlike' : 'pass';
-    await recordFeedback(currentCandidate.item.id, interactionType);
-
-    setTimeout(() => {
-      setCurrentIndex(prev => prev + 1);
-      x.set(0);
-      y.set(0);
-    }, 200);
-
-    if (currentIndex >= candidates.length - 2 && hasMore) {
+    if (activeCards.length < 3 && hasMore && !loading) {
       fetchMore();
     }
+  }, [activeCards.length, hasMore, loading, fetchMore]);
+
+  const handleSwipe = (direction: 'left' | 'right' | 'up') => {
+    if (!currentCandidate) return;
+
+    const cardId = currentCandidate.item.id;
+    
+    // Set exit direction for animation
+    setExitDirection(direction);
+    
+    // Fire-and-forget backend call (don't wait)
+    const interactionType = direction === 'right' ? 'like' : direction === 'up' ? 'superlike' : 'pass';
+    recordFeedback(cardId, interactionType);
+
+    // Immediately remove card from stack after animation starts
+    setTimeout(() => {
+      setSwipedCardIds(prev => new Set(prev).add(cardId));
+      setExitDirection(null);
+      // Reset motion values for next card
+      x.set(0);
+      y.set(0);
+    }, 300);
   };
 
   const handleDragEnd = (event: any, info: PanInfo) => {
@@ -83,7 +88,8 @@ export default function DiscoverPage() {
       minEngagement: filterEngagement[0] > 0 ? filterEngagement[0] : undefined,
     });
     
-    setCurrentIndex(0);
+    // Clear swiped cards when applying new filters
+    setSwipedCardIds(new Set());
     setExitDirection(null);
     
     // Wait for filters to apply
@@ -103,7 +109,7 @@ export default function DiscoverPage() {
     setFilterEngagement([0]);
     setFilterFollowers([0]);
     updateFilters({});
-    setCurrentIndex(0);
+    setSwipedCardIds(new Set());
     toast({
       title: "Filters Cleared",
       description: "Showing all profiles",
@@ -240,7 +246,7 @@ export default function DiscoverPage() {
               {/* Card Stack */}
               <div className="relative h-[620px]">
                 {/* Background cards with stagger effect */}
-                {candidates.slice(currentIndex + 1, currentIndex + 3).map((candidate, idx) => (
+                {activeCards.slice(1, 3).map((candidate, idx) => (
                   <motion.div
                     key={candidate.item.id}
                     initial={{ scale: 1 - (idx + 2) * 0.05, y: -(idx + 2) * 10 }}
