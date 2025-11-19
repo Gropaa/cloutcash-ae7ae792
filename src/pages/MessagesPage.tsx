@@ -39,14 +39,164 @@ interface Message {
   read: boolean;
 }
 
+// Mock data for testing
+const MOCK_CONVERSATIONS: Conversation[] = [
+  {
+    id: "mock-1",
+    creator_id: "creator-1",
+    brand_id: "brand-1",
+    last_message_at: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+    creator_profile: {
+      id: "creator-1",
+      full_name: "Sarah Johnson",
+      avatar_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
+      user_type: "creator",
+    },
+    brand_profile: {
+      id: "brand-1",
+      full_name: "TechBrand Co",
+      avatar_url: "https://api.dicebear.com/7.x/initials/svg?seed=TB",
+      user_type: "brand",
+    },
+    last_message: {
+      content: "Looking forward to collaborating on this campaign!",
+      created_at: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+    },
+  },
+  {
+    id: "mock-2",
+    creator_id: "creator-2",
+    brand_id: "brand-2",
+    last_message_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+    creator_profile: {
+      id: "creator-2",
+      full_name: "Alex Chen",
+      avatar_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Alex",
+      user_type: "creator",
+    },
+    brand_profile: {
+      id: "brand-2",
+      full_name: "Fashion Forward",
+      avatar_url: "https://api.dicebear.com/7.x/initials/svg?seed=FF",
+      user_type: "brand",
+    },
+    last_message: {
+      content: "Can we schedule a call to discuss the details?",
+      created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+    },
+  },
+  {
+    id: "mock-3",
+    creator_id: "creator-3",
+    brand_id: "brand-3",
+    last_message_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+    creator_profile: {
+      id: "creator-3",
+      full_name: "Emma Rodriguez",
+      avatar_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Emma",
+      user_type: "creator",
+    },
+    brand_profile: {
+      id: "brand-3",
+      full_name: "EcoLife Products",
+      avatar_url: "https://api.dicebear.com/7.x/initials/svg?seed=EL",
+      user_type: "brand",
+    },
+    last_message: {
+      content: "The content samples look great! When can we start?",
+      created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+    },
+  },
+  {
+    id: "mock-4",
+    creator_id: "creator-4",
+    brand_id: "brand-4",
+    last_message_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+    creator_profile: {
+      id: "creator-4",
+      full_name: "Marcus Williams",
+      avatar_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Marcus",
+      user_type: "creator",
+    },
+    brand_profile: {
+      id: "brand-4",
+      full_name: "FitGear Athletics",
+      avatar_url: "https://api.dicebear.com/7.x/initials/svg?seed=FG",
+      user_type: "brand",
+    },
+    last_message: {
+      content: "Thanks for sharing your rates. Let me review and get back to you.",
+      created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+    },
+  },
+  {
+    id: "mock-5",
+    creator_id: "creator-5",
+    brand_id: "brand-5",
+    last_message_at: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
+    creator_profile: {
+      id: "creator-5",
+      full_name: "Olivia Taylor",
+      avatar_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Olivia",
+      user_type: "creator",
+    },
+    brand_profile: {
+      id: "brand-5",
+      full_name: "Beauty Bliss",
+      avatar_url: "https://api.dicebear.com/7.x/initials/svg?seed=BB",
+      user_type: "brand",
+    },
+    last_message: {
+      content: "Perfect! I'll send over the contract details soon.",
+      created_at: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
+    },
+  },
+];
+
+const MOCK_MESSAGES: Message[] = [
+  {
+    id: "msg-1",
+    conversation_id: "mock-1",
+    sender_id: "brand-1",
+    content: "Hi! We're really interested in working with you on our new product launch.",
+    created_at: new Date(Date.now() - 1000 * 60 * 10).toISOString(),
+    read: true,
+  },
+  {
+    id: "msg-2",
+    conversation_id: "mock-1",
+    sender_id: "creator-1",
+    content: "That sounds exciting! I'd love to hear more about the campaign.",
+    created_at: new Date(Date.now() - 1000 * 60 * 8).toISOString(),
+    read: true,
+  },
+  {
+    id: "msg-3",
+    conversation_id: "mock-1",
+    sender_id: "brand-1",
+    content: "Great! We're planning a 3-month campaign with weekly content. What are your rates for that?",
+    created_at: new Date(Date.now() - 1000 * 60 * 6).toISOString(),
+    read: true,
+  },
+  {
+    id: "msg-4",
+    conversation_id: "mock-1",
+    sender_id: "creator-1",
+    content: "Looking forward to collaborating on this campaign!",
+    created_at: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+    read: false,
+  },
+];
+
 const MessagesPage = () => {
   const { user } = useAuth();
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>(MOCK_CONVERSATIONS);
+  const [activeConversation, setActiveConversation] = useState<Conversation | null>(MOCK_CONVERSATIONS[0]);
+  const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES);
   const [newMessage, setNewMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentProfile, setCurrentProfile] = useState<Profile | null>(null);
+  const [useMockData, setUseMockData] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -86,9 +236,11 @@ const MessagesPage = () => {
       }
 
       if (!convData || convData.length === 0) {
-        setConversations([]);
-        return;
+        return; // Keep mock data if no real data
       }
+
+      // Switch to real data once available
+      setUseMockData(false);
 
       // Get all unique profile IDs
       const profileIds = new Set<string>();
@@ -137,6 +289,12 @@ const MessagesPage = () => {
   useEffect(() => {
     if (!activeConversation) return;
 
+    // If using mock data, filter mock messages for active conversation
+    if (useMockData) {
+      setMessages(MOCK_MESSAGES.filter(m => m.conversation_id === activeConversation.id));
+      return;
+    }
+
     const fetchMessages = async () => {
       const { data, error } = await supabase
         .from("messages")
@@ -149,7 +307,9 @@ const MessagesPage = () => {
         return;
       }
 
-      setMessages(data || []);
+      if (data && data.length > 0) {
+        setMessages(data);
+      }
     };
 
     fetchMessages();
@@ -174,10 +334,27 @@ const MessagesPage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [activeConversation]);
+  }, [activeConversation, useMockData]);
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !activeConversation || !currentProfile) return;
+    if (!newMessage.trim() || !activeConversation) return;
+
+    // If using mock data, add message to mock state
+    if (useMockData) {
+      const newMsg: Message = {
+        id: `msg-${Date.now()}`,
+        conversation_id: activeConversation.id,
+        sender_id: currentProfile?.id || "creator-1",
+        content: newMessage.trim(),
+        created_at: new Date().toISOString(),
+        read: false,
+      };
+      setMessages((prev) => [...prev, newMsg]);
+      setNewMessage("");
+      return;
+    }
+
+    if (!currentProfile) return;
 
     const { error } = await supabase.from("messages").insert({
       conversation_id: activeConversation.id,
@@ -204,6 +381,10 @@ const MessagesPage = () => {
   };
 
   const getOtherProfile = (conv: Conversation): Profile | undefined => {
+    // For mock data, assume we're the creator
+    if (useMockData) {
+      return conv.brand_profile;
+    }
     if (!currentProfile) return undefined;
     return conv.creator_id === currentProfile.id
       ? conv.brand_profile
@@ -320,7 +501,9 @@ const MessagesPage = () => {
                 <ScrollArea className="flex-1 p-4">
                   <div className="space-y-4">
                     {messages.map((msg) => {
-                      const isMine = msg.sender_id === currentProfile?.id;
+                      const isMine = useMockData 
+                        ? msg.sender_id.startsWith("creator")
+                        : msg.sender_id === currentProfile?.id;
                       return (
                         <div
                           key={msg.id}

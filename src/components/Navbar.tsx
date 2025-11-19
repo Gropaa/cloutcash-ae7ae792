@@ -1,9 +1,9 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
-import { LogOut, User } from "lucide-react";
+import { LogOut, LayoutDashboard, Compass, MessageSquare } from "lucide-react";
 import logo from "@/assets/cloutcash-logo.png";
 import React from "react";
 
@@ -16,6 +16,7 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ onHomeClick, onContactClick, onAboutClick }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = async () => {
     await logout();
@@ -40,56 +41,56 @@ export const Navbar: React.FC<NavbarProps> = ({ onHomeClick, onContactClick, onA
           </Link>
 
           {/* Nav Links */}
-          <div className="hidden md:flex items-center space-x-6">
-            <span
-              onClick={onHomeClick}
-              className="text-sm font-medium transition-colors hover:text-primary cursor-pointer"
-            >
-              Home
-            </span>
-              
-            
-            <span
-              onClick={onAboutClick}
-              className="text-sm font-medium transition-colors hover:text-primary cursor-pointer"
-            >
-              About
-            </span>
-            <span
-              onClick={onContactClick}
-              className="text-sm font-medium transition-colors hover:text-primary cursor-pointer"
-            >
-              Contact
-            </span>
-          </div>
+          {!user && (
+            <div className="hidden md:flex items-center space-x-6">
+              <span
+                onClick={onHomeClick}
+                className="text-sm font-medium transition-colors hover:text-primary cursor-pointer"
+              >
+                Home
+              </span>
+              <span
+                onClick={onAboutClick}
+                className="text-sm font-medium transition-colors hover:text-primary cursor-pointer"
+              >
+                About
+              </span>
+              <span
+                onClick={onContactClick}
+                className="text-sm font-medium transition-colors hover:text-primary cursor-pointer"
+              >
+                Contact
+              </span>
+            </div>
+          )}
 
           {/* Right-side controls */}
           <div className="flex items-center space-x-4">
             <ThemeToggle />
-          {user ? (
+            {user ? (
               <div className="flex items-center space-x-2">
                 <Button
-                  variant="ghost"
+                  variant={location.pathname === "/dashboard" ? "secondary" : "ghost"}
                   size="sm"
                   onClick={() => navigate("/dashboard")}
                 >
-                  <User className="h-4 w-4 mr-2" />
+                  <LayoutDashboard className="h-4 w-4 mr-2" />
                   Dashboard
                 </Button>
                 <Button
-                  variant="ghost"
+                  variant={location.pathname === "/discover" ? "secondary" : "ghost"}
                   size="sm"
                   onClick={() => navigate("/discover")}
                 >
-                  <User className="h-4 w-4 mr-2" />
+                  <Compass className="h-4 w-4 mr-2" />
                   Discover
                 </Button>
                 <Button
-                  variant="ghost"
+                  variant={location.pathname === "/messages" ? "secondary" : "ghost"}
                   size="sm"
                   onClick={() => navigate("/messages")}
                 >
-                  <User className="h-4 w-4 mr-2" />
+                  <MessageSquare className="h-4 w-4 mr-2" />
                   Messages
                 </Button>
                 <Button
