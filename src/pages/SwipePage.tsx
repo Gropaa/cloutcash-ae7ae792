@@ -4,17 +4,20 @@ import { Navbar } from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
 import { X, Star, Heart, SlidersHorizontal, MapPin, DollarSign, TrendingUp, Users, ExternalLink, Target, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useMatchFeed } from '@/hooks/useMatchFeed';
 import { useFeedback } from '@/hooks/useFeedback';
 import { useAuth } from '@/hooks/useAuth';
-import { ScoredCandidate, Influencer } from '@/types/matchmaking';
+import { ScoredCandidate, Influencer, MatchFilters } from '@/types/matchmaking';
 
 const SwipePage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { candidates, loading, hasMore, fetchMore } = useMatchFeed('brand');
+  const { candidates, loading, hasMore, fetchMore, updateFilters } = useMatchFeed('brand');
   const { recordFeedback } = useFeedback();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [exitX, setExitX] = useState(0);
@@ -22,6 +25,14 @@ const SwipePage = () => {
   const [profileSheetOpen, setProfileSheetOpen] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<Influencer | null>(null);
   const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  
+  // Filter states
+  const [filterNiches, setFilterNiches] = useState('');
+  const [filterLocation, setFilterLocation] = useState('');
+  const [filterBudgetRange, setFilterBudgetRange] = useState<[number, number]>([0, 50000]);
+  const [filterEngagement, setFilterEngagement] = useState<[number]>([0]);
+  const [filterFollowers, setFilterFollowers] = useState<[number]>([0]);
 
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -86,6 +97,38 @@ const SwipePage = () => {
     }
   };
 
+  const handleApplyFilters = () => {
+    const filters: MatchFilters = {};
+    
+    if (filterNiches) {
+      filters.niches = filterNiches.split(',').map(n => n.trim()).filter(Boolean);
+    }
+    if (filterLocation) {
+      filters.geo = filterLocation.split(',').map(l => l.trim()).filter(Boolean);
+    }
+    if (filterBudgetRange[1] < 50000) {
+      filters.maxPrice = filterBudgetRange[1];
+    }
+    if (filterEngagement[0] > 0) {
+      filters.minEngagement = filterEngagement[0];
+    }
+    
+    updateFilters(filters);
+    setFilterSheetOpen(false);
+    setCurrentIndex(0);
+  };
+
+  const handleClearFilters = () => {
+    setFilterNiches('');
+    setFilterLocation('');
+    setFilterBudgetRange([0, 50000]);
+    setFilterEngagement([0]);
+    setFilterFollowers([0]);
+    updateFilters({});
+    setFilterSheetOpen(false);
+    setCurrentIndex(0);
+  };
+
   if (!user) return null;
 
   if (loading && candidates.length === 0) {
@@ -124,7 +167,12 @@ const SwipePage = () => {
                 <Badge variant="secondary" className="px-3 py-1">
                   Queue: {queueCount}
                 </Badge>
-                <Button variant="outline" size="sm" className="gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="gap-2"
+                  onClick={() => setFilterSheetOpen(true)}
+                >
                   <SlidersHorizontal className="w-4 h-4" />
                   Filters
                 </Button>
@@ -289,6 +337,117 @@ const SwipePage = () => {
             </div>
           </div>
         )}
+
+        {/* Filter Side Sheet */}
+        <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
+          <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>Filter Matches</SheetTitle>
+              <SheetDescription>
+                Refine your match feed with custom filters
+              </SheetDescription>
+            </SheetHeader>
+
+            <div className="mt-6 space-y-6">
+              {/* Niche */}
+              <div className="space-y-2">
+                <Label htmlFor="niche">Niches</Label>
+                <Input
+                  id="niche"
+                  placeholder="e.g., Fashion, Tech, Fitness (comma separated)"
+                  value={filterNiches}
+                  onChange={(e) => setFilterNiches(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Enter niches separated by commas
+                </p>
+              </div>
+
+              {/* Location */}
+              <div className="space-y-2">
+                <Label htmlFor="location">Location</Label>
+                <Input
+                  id="location"
+                  placeholder="e.g., US, UK, Global (comma separated)"
+                  value={filterLocation}
+                  onChange={(e) => setFilterLocation(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Enter locations separated by commas
+                </p>
+              </div>
+
+              {/* Budget Range */}
+              <div className="space-y-3">
+                <Label>Budget Range (per post)</Label>
+                <div className="px-2">
+                  <Slider
+                    value={filterBudgetRange}
+                    onValueChange={(value) => setFilterBudgetRange(value as [number, number])}
+                    max={50000}
+                    step={1000}
+                    className="mb-2"
+                  />
+                </div>
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>${filterBudgetRange[0].toLocaleString()}</span>
+                  <span>${filterBudgetRange[1].toLocaleString()}{filterBudgetRange[1] === 50000 ? '+' : ''}</span>
+                </div>
+              </div>
+
+              {/* Engagement Rate */}
+              <div className="space-y-3">
+                <Label>Minimum Engagement Rate</Label>
+                <div className="px-2">
+                  <Slider
+                    value={filterEngagement}
+                    onValueChange={(value) => setFilterEngagement(value as [number])}
+                    max={20}
+                    step={0.5}
+                    className="mb-2"
+                  />
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {filterEngagement[0]}%+
+                </div>
+              </div>
+
+              {/* Follower Count */}
+              <div className="space-y-3">
+                <Label>Minimum Followers</Label>
+                <div className="px-2">
+                  <Slider
+                    value={filterFollowers}
+                    onValueChange={(value) => setFilterFollowers(value as [number])}
+                    max={1000000}
+                    step={10000}
+                    className="mb-2"
+                  />
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {filterFollowers[0].toLocaleString()}+
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={handleClearFilters}
+                >
+                  Clear All
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={handleApplyFilters}
+                >
+                  Apply Filters
+                </Button>
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
 
         {/* Profile Side Sheet */}
         <Sheet open={profileSheetOpen} onOpenChange={setProfileSheetOpen}>
