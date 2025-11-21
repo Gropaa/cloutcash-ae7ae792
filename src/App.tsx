@@ -14,8 +14,10 @@ import ProfileSetupPage from "./pages/ProfileSetupPage";
 import SwipePage from "./pages/SwipePage";
 import DiscoverPage from "./pages/DiscoverPage";
 import MessagesPage from "./pages/MessagesPage";
+import CampaignsPage from "./pages/CampaignsPage";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { AuthProvider } from "./hooks/useAuth";
 
 const queryClient = new QueryClient();
 
@@ -97,6 +99,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <MessagesPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/campaigns" 
+            element={
+              <ProtectedRoute>
+                <CampaignsPage />
               </ProtectedRoute>
             } 
           />

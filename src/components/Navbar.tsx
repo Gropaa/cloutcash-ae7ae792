@@ -5,7 +5,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
 import { useUnreadCount } from "@/hooks/useUnreadCount";
 import { toast } from "@/hooks/use-toast";
-import { LogOut, LayoutDashboard, Compass, MessageSquare } from "lucide-react";
+import { LogOut, LayoutDashboard, Compass, MessageSquare, Briefcase } from "lucide-react";
 import logo from "@/assets/cloutcash-logo.png";
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -128,6 +128,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onHomeClick, onContactClick, onA
                       {totalUnread > 99 ? "99+" : totalUnread}
                     </Badge>
                   )}
+                </Button>
+                <Button
+                  variant={location.pathname === "/campaigns" ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => navigate("/campaigns")}
+                >
+                  <Briefcase className="h-4 w-4 mr-2" />
+                  Campaigns
                 </Button>
                 <Button
                   variant="outline"
