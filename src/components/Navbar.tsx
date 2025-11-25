@@ -150,7 +150,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onHomeClick, onContactClick, onA
             ) : (
               <div className="flex items-center space-x-2">
                 <Button 
-                  variant="ghost" 
+                  variant="outline" 
                   size="sm"
                   onClick={() => navigate("/login")}
                 >
@@ -158,7 +158,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onHomeClick, onContactClick, onA
                 </Button>
                 <Button 
                   size="sm"
-                  onClick={() => navigate("/login")}
+                  onClick={() => navigate("/login?mode=signup")}
                 >
                   Join Now
                 </Button>
