@@ -56,7 +56,7 @@ export const Hero = () => {
                 variant="hero" 
                 size="lg" 
                 className="text-base lg:text-lg px-8 lg:px-10 py-5 lg:py-6 h-auto group"
-                onClick={() => navigate("/login")}
+                onClick={() => navigate("/login?mode=signup")}
               >
                 Get Started
                 <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />

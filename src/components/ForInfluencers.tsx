@@ -45,7 +45,7 @@ export const ForInfluencers = () => {
               variant="hero" 
               size="lg" 
               className="text-lg px-10 py-6 h-auto group"
-              onClick={() => navigate("/login")}
+              onClick={() => navigate("/login?mode=signup")}
             >
               Start Earning Today
               <Sparkles className="ml-2 h-5 w-5 group-hover:rotate-12 transition-transform" />
