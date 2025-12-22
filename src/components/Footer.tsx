@@ -4,22 +4,12 @@ import { Instagram, Twitter, Linkedin, Mail } from "lucide-react";
 
 // Wrap Footer in forwardRef so parent can scroll to it
 export const Footer = React.forwardRef<HTMLDivElement>((props, ref) => {
-  return (
-    <footer
-      ref={ref}
-      className="bg-secondary text-secondary-foreground py-12"
-    >
+  return <footer ref={ref} className="bg-secondary text-secondary-foreground py-12">
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           <div>
-            <img
-              src={logo}
-              alt="CloutCash"
-              className="h-10 mb-4 brightness-0 invert"
-            />
-            <p className="text-sm text-white/70 leading-relaxed">
-              IP-driven matchmaking platform connecting micro-influencers with brands.
-            </p>
+            <img src={logo} alt="CloutCash" className="h-10 mb-4 brightness-0 invert" />
+            <p className="text-sm text-white/70 leading-relaxed">A data-backed matchmaking platform connecting micro-influencers with brands.</p>
           </div>
 
           <div>
@@ -75,8 +65,6 @@ export const Footer = React.forwardRef<HTMLDivElement>((props, ref) => {
           </div>
         </div>
       </div>
-    </footer>
-  );
+    </footer>;
 });
-
 Footer.displayName = "Footer"; // required when using forwardRef
