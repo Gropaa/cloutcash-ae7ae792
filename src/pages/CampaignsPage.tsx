@@ -177,16 +177,16 @@ export default function CampaignsPage() {
                   ))
                 ) : (
                   <EmptyState 
-                    title="No pending offers"
-                    description="New campaign offers from brands will appear here"
+                    title="Your offers will show here"
+                    description="When a brand reaches out, you'll see their campaign details right away"
                   />
                 )}
               </TabsContent>
 
               <TabsContent value="proposals" className="space-y-3 mt-5">
                 <EmptyState 
-                  title="No proposals yet"
-                  description="Proposals you send to brands will be tracked here"
+                  title="Your proposals live here"
+                  description="Any pitches or ideas you send to brands will be organized in one place"
                 />
               </TabsContent>
 
@@ -197,8 +197,8 @@ export default function CampaignsPage() {
                   ))
                 ) : (
                   <EmptyState 
-                    title="No active campaigns"
-                    description="Ongoing collaborations will appear here"
+                    title="Active work shows here"
+                    description="Once a campaign kicks off, you'll track progress and updates from this view"
                   />
                 )}
               </TabsContent>
@@ -236,8 +236,8 @@ export default function CampaignsPage() {
                   ))
                 ) : (
                   <EmptyState 
-                    title="No draft campaigns"
-                    description="Start a new campaign to begin"
+                    title="Ready when you are"
+                    description="Draft your first campaign here — you can refine it before sending"
                     action={
                       <Button 
                         variant="outline" 
@@ -260,8 +260,8 @@ export default function CampaignsPage() {
                   ))
                 ) : (
                   <EmptyState 
-                    title="No campaigns in negotiation"
-                    description="Active discussions with creators will appear here"
+                    title="Conversations in progress"
+                    description="Once you're discussing terms with a creator, you'll see those campaigns here"
                   />
                 )}
               </TabsContent>
@@ -273,8 +273,8 @@ export default function CampaignsPage() {
                   ))
                 ) : (
                   <EmptyState 
-                    title="No active campaigns"
-                    description="Running campaigns will be tracked here"
+                    title="Live campaigns appear here"
+                    description="This is where you'll monitor ongoing collaborations and deliverables"
                   />
                 )}
               </TabsContent>
@@ -286,8 +286,8 @@ export default function CampaignsPage() {
                   ))
                 ) : (
                   <EmptyState 
-                    title="No completed campaigns"
-                    description="Finished campaigns will appear here"
+                    title="Completed work lands here"
+                    description="A running record of successful collaborations you've wrapped up"
                   />
                 )}
               </TabsContent>
