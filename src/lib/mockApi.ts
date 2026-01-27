@@ -5,7 +5,6 @@ import { rankCandidates } from './matchmaker';
 // LocalStorage keys
 const STORAGE_KEYS = {
   INTERACTIONS: 'cloutcash_interactions',
-  SEEN_IDS: 'cloutcash_seen_ids'
 };
 
 // Load from localStorage
@@ -18,18 +17,8 @@ const loadInteractions = (): Interaction[] => {
   }
 };
 
-const loadSeenIds = (): Set<string> => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEYS.SEEN_IDS);
-    return stored ? new Set(JSON.parse(stored)) : new Set<string>();
-  } catch {
-    return new Set<string>();
-  }
-};
-
 // In-memory storage for interactions with localStorage sync
 let interactions: Interaction[] = loadInteractions();
-const seenIds = loadSeenIds();
 
 // Save to localStorage
 const saveInteractions = () => {
@@ -37,14 +26,6 @@ const saveInteractions = () => {
     localStorage.setItem(STORAGE_KEYS.INTERACTIONS, JSON.stringify(interactions));
   } catch (error) {
     console.error('Failed to save interactions:', error);
-  }
-};
-
-const saveSeenIds = () => {
-  try {
-    localStorage.setItem(STORAGE_KEYS.SEEN_IDS, JSON.stringify([...seenIds]));
-  } catch (error) {
-    console.error('Failed to save seen IDs:', error);
   }
 };
 
@@ -58,7 +39,7 @@ export const mockApi = {
     limit: number = 10
   ): Promise<{ candidates: ScoredCandidate<Influencer>[]; nextCursor: number }> {
     // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise(resolve => setTimeout(resolve, 200));
     
     const userInteractions = interactions.filter(i => i.userId === userId);
     const context = {
@@ -67,18 +48,29 @@ export const mockApi = {
       interactions: userInteractions
     };
     
-    // Get all candidates excluding already seen ones in this session
-    const candidates = mockInfluencers.filter(inf => !seenIds.has(inf.id));
+    // Get all candidates - don't filter by seen IDs to allow infinite swiping
+    const candidates = [...mockInfluencers];
     
     // Rank candidates
     const ranked = rankCandidates(role, userCampaign, candidates, context, filters);
     
-    // Paginate
-    const batch = ranked.slice(cursor, cursor + limit);
+    // For infinite scroll, wrap around the array
+    const totalCandidates = ranked.length;
+    const wrappedCursor = cursor % totalCandidates;
     
-    // Mark as seen
-    batch.forEach(c => seenIds.add(c.item.id));
-    saveSeenIds();
+    // Get batch, wrapping around if needed
+    let batch: ScoredCandidate<Influencer>[] = [];
+    for (let i = 0; i < limit; i++) {
+      const index = (wrappedCursor + i) % totalCandidates;
+      batch.push({
+        ...ranked[index],
+        // Add a unique key for each card instance to avoid React key conflicts
+        item: {
+          ...ranked[index].item,
+          id: `${ranked[index].item.id}-${cursor + i}`
+        }
+      });
+    }
     
     return {
       candidates: batch,
@@ -91,11 +83,14 @@ export const mockApi = {
     targetId: string,
     type: InteractionType
   ): Promise<void> {
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 50));
+    
+    // Extract original ID (remove the cursor suffix)
+    const originalId = targetId.split('-')[0];
     
     const interaction: Interaction = {
       userId,
-      targetId,
+      targetId: originalId,
       type,
       ts: Date.now()
     };
@@ -104,7 +99,7 @@ export const mockApi = {
     saveInteractions();
     
     // Track analytics
-    console.log(`[Analytics] ${type}:`, { userId, targetId, ts: interaction.ts });
+    console.log(`[Analytics] ${type}:`, { userId, targetId: originalId, ts: interaction.ts });
   },
 
   async getInteractions(userId: string): Promise<Interaction[]> {
@@ -112,14 +107,11 @@ export const mockApi = {
   },
 
   clearSeenIds() {
-    seenIds.clear();
-    saveSeenIds();
+    // No-op now, kept for API compatibility
   },
 
   resetDemo() {
     interactions = [...mockInteractions];
-    seenIds.clear();
     saveInteractions();
-    saveSeenIds();
   }
 };

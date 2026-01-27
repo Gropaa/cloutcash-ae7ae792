@@ -5,7 +5,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
 import { useUnreadCount } from "@/hooks/useUnreadCount";
 import { toast } from "@/hooks/use-toast";
-import { LogOut, LayoutDashboard, Compass, MessageSquare, Briefcase, Menu } from "lucide-react";
+import { LogOut, LayoutDashboard, Compass, MessageSquare, Briefcase, Menu, User } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -62,6 +62,14 @@ export const Navbar: React.FC = () => {
     { label: "How It Works", path: "/how-it-works" },
   ];
 
+  const authNavItems = [
+    { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
+    { label: "Discover", path: "/discover", icon: Compass },
+    { label: "Messages", path: "/messages", icon: MessageSquare, badge: totalUnread },
+    { label: "Campaigns", path: "/campaigns", icon: Briefcase },
+    { label: "Profile", path: "/profile", icon: User },
+  ];
+
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4">
@@ -75,7 +83,7 @@ export const Navbar: React.FC = () => {
             <span className="font-bold text-xl bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">CloutCash</span>
           </Link>
 
-          {/* Public Nav Links */}
+          {/* Public Nav Links - Desktop */}
           {!user && (
             <div className="hidden lg:flex items-center space-x-6">
               {publicNavItems.map((item) => (
@@ -92,62 +100,118 @@ export const Navbar: React.FC = () => {
             </div>
           )}
 
-          {/* Right-side controls */}
-          <div className="flex items-center space-x-4">
-            <ThemeToggle />
-            {user ? (
-              <div className="flex items-center space-x-2">
+          {/* Auth Nav Links - Desktop only */}
+          {user && (
+            <div className="hidden lg:flex items-center space-x-1">
+              {authNavItems.slice(0, 4).map((item) => (
                 <Button
-                  variant={location.pathname === "/dashboard" ? "secondary" : "ghost"}
+                  key={item.path}
+                  variant={location.pathname === item.path ? "secondary" : "ghost"}
                   size="sm"
-                  onClick={() => navigate("/dashboard")}
-                >
-                  <LayoutDashboard className="h-4 w-4 mr-2" />
-                  Dashboard
-                </Button>
-                <Button
-                  variant={location.pathname === "/discover" ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={() => navigate("/discover")}
-                >
-                  <Compass className="h-4 w-4 mr-2" />
-                  Discover
-                </Button>
-                <Button
-                  variant={location.pathname === "/messages" ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={() => navigate("/messages")}
+                  onClick={() => navigate(item.path)}
                   className="relative"
                 >
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  Messages
-                  {totalUnread > 0 && (
+                  <item.icon className="h-4 w-4 mr-2" />
+                  {item.label}
+                  {item.badge && item.badge > 0 && (
                     <Badge 
                       variant="destructive" 
                       className="absolute -top-1 -right-1 h-5 min-w-[1.25rem] px-1 text-xs"
                     >
-                      {totalUnread > 99 ? "99+" : totalUnread}
+                      {item.badge > 99 ? "99+" : item.badge}
                     </Badge>
                   )}
                 </Button>
-                <Button
-                  variant={location.pathname === "/campaigns" ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={() => navigate("/campaigns")}
-                >
-                  <Briefcase className="h-4 w-4 mr-2" />
-                  Campaigns
-                </Button>
+              ))}
+            </div>
+          )}
+
+          {/* Right-side controls */}
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            <ThemeToggle />
+            
+            {user ? (
+              <>
+                {/* Desktop Logout */}
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleLogout}
-                  className="group"
+                  className="hidden lg:flex group"
                 >
                   <LogOut className="h-4 w-4 mr-2 group-hover:translate-x-1 transition-transform" />
                   Logout
                 </Button>
-              </div>
+
+                {/* Mobile Menu for Authenticated Users */}
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button variant="ghost" size="icon" className="lg:hidden relative">
+                      <Menu className="h-5 w-5" />
+                      {totalUnread > 0 && (
+                        <span className="absolute -top-1 -right-1 h-4 w-4 bg-destructive rounded-full flex items-center justify-center text-[10px] text-destructive-foreground">
+                          {totalUnread > 9 ? "9+" : totalUnread}
+                        </span>
+                      )}
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="right" className="w-72 bg-background">
+                    <nav className="flex flex-col gap-2 mt-8">
+                      {authNavItems.map((item, index) => (
+                        <motion.div
+                          key={item.path}
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.05, duration: 0.2, ease: "easeOut" }}
+                        >
+                          <SheetClose asChild>
+                            <Button
+                              variant={location.pathname === item.path ? "secondary" : "ghost"}
+                              className="w-full justify-start relative"
+                              onClick={() => navigate(item.path)}
+                            >
+                              <item.icon className="h-5 w-5 mr-3" />
+                              {item.label}
+                              {item.badge && item.badge > 0 && (
+                                <Badge 
+                                  variant="destructive" 
+                                  className="ml-auto"
+                                >
+                                  {item.badge > 99 ? "99+" : item.badge}
+                                </Badge>
+                              )}
+                            </Button>
+                          </SheetClose>
+                        </motion.div>
+                      ))}
+                      
+                      <motion.div 
+                        className="border-t border-border my-4"
+                        initial={{ opacity: 0, scaleX: 0 }}
+                        animate={{ opacity: 1, scaleX: 1 }}
+                        transition={{ delay: 0.25, duration: 0.2 }}
+                      />
+                      
+                      <motion.div
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.3, duration: 0.2, ease: "easeOut" }}
+                      >
+                        <SheetClose asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-start text-destructive hover:text-destructive"
+                            onClick={handleLogout}
+                          >
+                            <LogOut className="h-5 w-5 mr-3" />
+                            Logout
+                          </Button>
+                        </SheetClose>
+                      </motion.div>
+                    </nav>
+                  </SheetContent>
+                </Sheet>
+              </>
             ) : (
               <>
                 {/* Desktop buttons */}

@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useMotionValue, useTransform, PanInfo, AnimatePresence } from 'framer-motion';
-import { X, Star, Heart, MapPin, DollarSign, TrendingUp, Users, Loader2, Eye } from 'lucide-react';
+import { X, Star, Heart, MapPin, DollarSign, TrendingUp, Users, Loader2, SlidersHorizontal, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,14 +13,26 @@ import { useFeedback } from '@/hooks/useFeedback';
 import { Navbar } from '@/components/Navbar';
 import { Influencer } from '@/types/matchmaking';
 import { toast } from '@/hooks/use-toast';
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetClose,
+} from '@/components/ui/sheet';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 
 export default function DiscoverPage() {
   const navigate = useNavigate();
   const { candidates, loading, fetchMore, hasMore, updateFilters, refetch } = useMatchFeed('brand');
   const { recordFeedback } = useFeedback();
-  const [swipedCardIds, setSwipedCardIds] = useState<Set<string>>(new Set());
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
   const [isApplyingFilters, setIsApplyingFilters] = useState(false);
-  const [exitDirection, setExitDirection] = useState<'left' | 'right' | 'up' | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   // Filter states
   const [filterNiches, setFilterNiches] = useState('');
@@ -29,49 +41,63 @@ export default function DiscoverPage() {
   const [filterEngagement, setFilterEngagement] = useState([0]);
   const [filterFollowers, setFilterFollowers] = useState([0]);
 
-  // Filter out swiped cards
-  const activeCards = candidates.filter(c => !swipedCardIds.has(c.item.id));
-  const currentCandidate = activeCards[0];
+  // Get current and next cards
+  const currentCandidate = candidates[currentIndex];
+  const nextCards = candidates.slice(currentIndex + 1, currentIndex + 3);
   
+  // Motion values for drag
   const x = useMotionValue(0);
   const y = useMotionValue(0);
-  const rotate = useTransform(x, [-300, 300], [-25, 25]);
-  const opacity = useTransform(x, [-300, -150, 0, 150, 300], [0, 1, 1, 1, 0]);
+  const rotate = useTransform(x, [-300, 300], [-15, 15]);
 
-  // Load more cards when running low
+  // Load more candidates when running low
   useEffect(() => {
-    if (activeCards.length < 3 && hasMore && !loading) {
+    if (candidates.length - currentIndex < 5 && hasMore && !loading) {
       fetchMore();
     }
-  }, [activeCards.length, hasMore, loading, fetchMore]);
+  }, [currentIndex, candidates.length, hasMore, loading, fetchMore]);
 
-  const handleSwipe = (direction: 'left' | 'right' | 'up') => {
-    if (!currentCandidate) return;
+  const handleSwipe = useCallback((direction: 'left' | 'right' | 'up') => {
+    if (!currentCandidate || isAnimating) return;
 
+    setIsAnimating(true);
     const cardId = currentCandidate.item.id;
-    
-    setExitDirection(direction);
     const interactionType = direction === 'right' ? 'like' : direction === 'up' ? 'superlike' : 'pass';
+    
     recordFeedback(cardId, interactionType);
-    setSwipedCardIds(prev => {
-      const next = new Set(prev);
-      next.add(cardId);
-      return next;
-    });
-  };
 
-  const handleDragEnd = (event: any, info: PanInfo) => {
-    const swipeThreshold = 120;
-    if (Math.abs(info.offset.x) > swipeThreshold) {
+    // Animate card exit
+    const exitX = direction === 'left' ? -500 : direction === 'right' ? 500 : 0;
+    const exitY = direction === 'up' ? -500 : 0;
+    
+    x.set(exitX);
+    y.set(exitY);
+
+    // Move to next card after animation
+    setTimeout(() => {
+      setCurrentIndex(prev => prev + 1);
+      x.set(0);
+      y.set(0);
+      setIsAnimating(false);
+    }, 200);
+  }, [currentCandidate, isAnimating, recordFeedback, x, y]);
+
+  const handleDragEnd = useCallback((event: any, info: PanInfo) => {
+    if (isAnimating) return;
+
+    const swipeThreshold = 100;
+    const velocity = Math.abs(info.velocity.x);
+    
+    if (Math.abs(info.offset.x) > swipeThreshold || velocity > 500) {
       handleSwipe(info.offset.x > 0 ? 'right' : 'left');
     } else if (info.offset.y < -swipeThreshold) {
       handleSwipe('up');
     } else {
-      // Snap back animation
+      // Snap back with spring animation
       x.set(0);
       y.set(0);
     }
-  };
+  }, [isAnimating, handleSwipe, x, y]);
 
   const handleApplyFilters = async () => {
     setIsApplyingFilters(true);
@@ -85,10 +111,9 @@ export default function DiscoverPage() {
     });
     await refetch();
     
-    // Clear swiped cards when applying new filters
-    setSwipedCardIds(new Set());
-    setExitDirection(null);
+    setCurrentIndex(0);
     setIsApplyingFilters(false);
+    setFiltersOpen(false);
     
     toast({
       title: "Filters Applied",
@@ -103,12 +128,111 @@ export default function DiscoverPage() {
     setFilterEngagement([0]);
     setFilterFollowers([0]);
     updateFilters({});
-    setSwipedCardIds(new Set());
+    setCurrentIndex(0);
     toast({
       title: "Filters Cleared",
       description: "Showing all profiles",
     });
   };
+
+  const FiltersContent = () => (
+    <div className="space-y-6">
+      <div>
+        <Label htmlFor="niche" className="text-sm font-medium">Niche</Label>
+        <Input
+          id="niche"
+          placeholder="e.g., Fashion, Tech"
+          value={filterNiches}
+          onChange={(e) => setFilterNiches(e.target.value)}
+          className="mt-2 bg-background/50"
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="location" className="text-sm font-medium">Location</Label>
+        <Input
+          id="location"
+          placeholder="e.g., Mumbai, Delhi"
+          value={filterLocation}
+          onChange={(e) => setFilterLocation(e.target.value)}
+          className="mt-2 bg-background/50"
+        />
+      </div>
+
+      <div>
+        <Label className="text-sm font-medium">Budget Range (₹/post)</Label>
+        <div className="mt-4 mb-2">
+          <Slider
+            value={filterBudgetRange}
+            onValueChange={setFilterBudgetRange}
+            max={100000}
+            step={5000}
+            className="mt-2"
+          />
+          <div className="flex justify-between text-sm text-muted-foreground mt-2">
+            <span>₹{filterBudgetRange[0].toLocaleString()}</span>
+            <span>₹{filterBudgetRange[1].toLocaleString()}</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <Label className="text-sm font-medium">Min Engagement Rate (%)</Label>
+        <div className="mt-4 mb-2">
+          <Slider
+            value={filterEngagement}
+            onValueChange={setFilterEngagement}
+            max={20}
+            step={0.5}
+            className="mt-2"
+          />
+          <div className="text-sm text-muted-foreground mt-2">
+            {filterEngagement[0]}%
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <Label className="text-sm font-medium">Min Followers</Label>
+        <div className="mt-4 mb-2">
+          <Slider
+            value={filterFollowers}
+            onValueChange={setFilterFollowers}
+            max={1000000}
+            step={10000}
+            className="mt-2"
+          />
+          <div className="text-sm text-muted-foreground mt-2">
+            {filterFollowers[0].toLocaleString()}
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-2 pt-4">
+        <Button 
+          onClick={handleApplyFilters} 
+          className="w-full"
+          disabled={isApplyingFilters}
+        >
+          {isApplyingFilters ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Applying...
+            </>
+          ) : (
+            'Apply Filters'
+          )}
+        </Button>
+        <Button 
+          onClick={handleClearFilters} 
+          variant="outline" 
+          className="w-full"
+        >
+          Clear Filters
+        </Button>
+      </div>
+    </div>
+  );
 
   if ((loading && candidates.length === 0) || isApplyingFilters) {
     return (
@@ -130,216 +254,137 @@ export default function DiscoverPage() {
     <div className="min-h-screen bg-background">
       <Navbar />
       
-      <div className="flex h-[calc(100vh-4rem)]">
-        {/* Left Sidebar - Filters */}
-        <div className="w-80 border-r border-border bg-card/50 backdrop-blur-sm p-6 overflow-y-auto">
+      <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)]">
+        {/* Desktop Sidebar - Hidden on mobile */}
+        <div className="hidden lg:block w-80 border-r border-border bg-card/50 backdrop-blur-sm p-6 overflow-y-auto">
           <h2 className="text-xl font-bold mb-6 text-foreground">Filters</h2>
-          
-          <div className="space-y-6">
-            <div>
-              <Label htmlFor="niche" className="text-sm font-medium">Niche</Label>
-              <Input
-                id="niche"
-                placeholder="e.g., Fashion, Tech"
-                value={filterNiches}
-                onChange={(e) => setFilterNiches(e.target.value)}
-                className="mt-2 bg-background/50"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="location" className="text-sm font-medium">Location</Label>
-              <Input
-                id="location"
-                placeholder="e.g., Mumbai, Delhi"
-                value={filterLocation}
-                onChange={(e) => setFilterLocation(e.target.value)}
-                className="mt-2 bg-background/50"
-              />
-            </div>
-
-            <div>
-              <Label className="text-sm font-medium">Budget Range (₹/post)</Label>
-              <div className="mt-4 mb-2">
-                <Slider
-                  value={filterBudgetRange}
-                  onValueChange={setFilterBudgetRange}
-                  max={100000}
-                  step={5000}
-                  className="mt-2"
-                />
-                <div className="flex justify-between text-sm text-muted-foreground mt-2">
-                  <span>₹{filterBudgetRange[0].toLocaleString()}</span>
-                  <span>₹{filterBudgetRange[1].toLocaleString()}</span>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-sm font-medium">Min Engagement Rate (%)</Label>
-              <div className="mt-4 mb-2">
-                <Slider
-                  value={filterEngagement}
-                  onValueChange={setFilterEngagement}
-                  max={20}
-                  step={0.5}
-                  className="mt-2"
-                />
-                <div className="text-sm text-muted-foreground mt-2">
-                  {filterEngagement[0]}%
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-sm font-medium">Min Followers</Label>
-              <div className="mt-4 mb-2">
-                <Slider
-                  value={filterFollowers}
-                  onValueChange={setFilterFollowers}
-                  max={1000000}
-                  step={10000}
-                  className="mt-2"
-                />
-                <div className="text-sm text-muted-foreground mt-2">
-                  {filterFollowers[0].toLocaleString()}
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Button 
-                onClick={handleApplyFilters} 
-                className="w-full bg-primary hover:bg-primary/90 shadow-[0_0_20px_rgba(354,78%,58%,0.3)]"
-                disabled={isApplyingFilters}
-              >
-                {isApplyingFilters ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Applying...
-                  </>
-                ) : (
-                  'Apply Filters'
-                )}
-              </Button>
-              <Button 
-                onClick={handleClearFilters} 
-                variant="outline" 
-                className="w-full"
-              >
-                Clear Filters
-              </Button>
-            </div>
-          </div>
+          <FiltersContent />
         </div>
 
         {/* Main Content - Swipe Cards */}
-        <div className="flex-1 flex flex-col items-center justify-center p-8 bg-background">
+        <div className="flex-1 flex flex-col items-center justify-start lg:justify-center p-4 sm:p-6 lg:p-8 bg-background overflow-y-auto">
+          {/* Mobile Filter Button */}
+          <div className="w-full max-w-md lg:hidden mb-4">
+            <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" className="w-full justify-between">
+                  <span className="flex items-center gap-2">
+                    <SlidersHorizontal className="h-4 w-4" />
+                    Filters
+                  </span>
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="h-[80vh] rounded-t-2xl">
+                <div className="pt-4 pb-8 overflow-y-auto h-full">
+                  <h2 className="text-xl font-bold mb-6 text-foreground">Filters</h2>
+                  <FiltersContent />
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+
           {currentCandidate ? (
-            <div className="relative w-full max-w-md">
+            <div className="relative w-full max-w-sm sm:max-w-md">
               {/* Card Stack */}
-              <div className="relative h-[620px]">
+              <div className="relative h-[450px] sm:h-[520px] lg:h-[580px]">
                 {/* Background cards with stagger effect */}
-                {activeCards.slice(1, 3).map((candidate, idx) => (
+                {nextCards.map((candidate, idx) => (
                   <motion.div
                     key={candidate.item.id}
-                    initial={{ scale: 1 - (idx + 2) * 0.05, y: -(idx + 2) * 10 }}
+                    initial={false}
                     animate={{ 
-                      scale: 1 - (idx + 1) * 0.05, 
-                      y: -(idx + 1) * 10,
-                      opacity: 1 - (idx + 1) * 0.25 
+                      scale: 1 - (idx + 1) * 0.04, 
+                      y: (idx + 1) * 8,
+                      opacity: 1 - (idx + 1) * 0.2 
                     }}
-                    transition={{ duration: 0.3, ease: "easeOut" }}
-                    className="absolute inset-0"
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    className="absolute inset-0 pointer-events-none"
                     style={{ zIndex: -idx - 1 }}
                   >
-                    <Card className="h-full bg-card/80 border border-border/50 backdrop-blur-sm overflow-hidden" />
+                    <Card className="h-full bg-card/80 border border-border/50 rounded-2xl overflow-hidden" />
                   </motion.div>
                 ))}
 
                 {/* Active card */}
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={currentCandidate.item.id}
-                    initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                    animate={{ scale: 1, opacity: 1, y: 0 }}
-                    exit={{
-                      x: exitDirection === 'left' ? -400 : exitDirection === 'right' ? 400 : 0,
-                      y: exitDirection === 'up' ? -400 : 0,
-                      opacity: 0,
-                      scale: 0.8,
-                      rotate: exitDirection === 'left' ? -30 : exitDirection === 'right' ? 30 : 0,
-                      transition: { duration: 0.3, ease: "easeIn" }
-                    }}
-                    transition={{ 
-                      type: "spring", 
-                      stiffness: 300, 
-                      damping: 25,
-                      opacity: { duration: 0.2 }
-                    }}
-                    style={{
-                      x,
-                      y,
-                      rotate,
-                    }}
-                    drag
-                    dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-                    dragElastic={0.7}
-                    onDragEnd={handleDragEnd}
-                    onAnimationComplete={(definition) => {
-                      if (definition === 'exit') {
-                        x.set(0);
-                        y.set(0);
-                        setExitDirection(null);
-                      }
-                    }}
-                    className="absolute inset-0 cursor-grab active:cursor-grabbing"
-                  >
-                    <Card className="h-full bg-card border-2 border-primary/20 overflow-hidden shadow-[0_0_40px_rgba(354,78%,58%,0.25)] hover:shadow-[0_0_50px_rgba(354,78%,58%,0.35)] transition-shadow">
-                      <ProfileCard influencer={currentCandidate.item} matchScore={currentCandidate.score} />
-                    </Card>
-                  </motion.div>
-                </AnimatePresence>
+                <motion.div
+                  key={currentCandidate.item.id}
+                  initial={{ scale: 0.95, opacity: 0 }}
+                  animate={{ 
+                    scale: 1, 
+                    opacity: 1,
+                    x: x.get(),
+                    y: y.get(),
+                  }}
+                  transition={{ 
+                    type: "spring", 
+                    stiffness: 400, 
+                    damping: 30,
+                  }}
+                  style={{
+                    x,
+                    y,
+                    rotate,
+                  }}
+                  drag={!isAnimating}
+                  dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+                  dragElastic={0.9}
+                  onDragEnd={handleDragEnd}
+                  whileDrag={{ cursor: 'grabbing' }}
+                  className="absolute inset-0 cursor-grab touch-none"
+                >
+                  <Card className="h-full bg-card border border-primary/20 rounded-2xl overflow-hidden shadow-lg">
+                    <ProfileCard influencer={currentCandidate.item} matchScore={currentCandidate.score} />
+                  </Card>
+                </motion.div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex justify-center items-center gap-6 mt-10">
+              <div className="flex justify-center items-center gap-4 sm:gap-6 mt-6 sm:mt-8">
                 <Button
                   size="lg"
                   variant="outline"
-                  className="w-16 h-16 rounded-full border-2 border-destructive hover:bg-destructive/10 hover:scale-110 transition-all shadow-lg hover:shadow-destructive/20"
+                  className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-destructive hover:bg-destructive/10 transition-all shadow-lg"
                   onClick={() => handleSwipe('left')}
+                  disabled={isAnimating}
                 >
-                  <X className="w-8 h-8 text-destructive" />
+                  <X className="w-6 h-6 sm:w-8 sm:h-8 text-destructive" />
                 </Button>
                 
                 <Button
                   size="lg"
                   variant="outline"
-                  className="w-16 h-16 rounded-full border-2 border-accent hover:bg-accent/10 hover:scale-110 transition-all shadow-lg hover:shadow-accent/20"
+                  className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-accent hover:bg-accent/10 transition-all shadow-lg"
                   onClick={() => handleSwipe('up')}
+                  disabled={isAnimating}
                 >
-                  <Star className="w-8 h-8 text-accent" />
+                  <Star className="w-6 h-6 sm:w-8 sm:h-8 text-accent" />
                 </Button>
                 
                 <Button
                   size="lg"
-                  className="w-20 h-20 rounded-full bg-primary hover:bg-primary/90 hover:scale-110 transition-all shadow-[0_0_30px_rgba(354,78%,58%,0.4)] hover:shadow-[0_0_40px_rgba(354,78%,58%,0.6)]"
+                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-primary hover:bg-primary/90 transition-all shadow-lg"
                   onClick={() => handleSwipe('right')}
+                  disabled={isAnimating}
                 >
-                  <Heart className="w-10 h-10 fill-primary-foreground" />
+                  <Heart className="w-8 h-8 sm:w-10 sm:h-10 fill-primary-foreground" />
                 </Button>
               </div>
+
+              {/* Swipe hints - mobile only */}
+              <p className="text-center text-xs text-muted-foreground mt-4 lg:hidden">
+                Swipe right to like • Swipe left to pass
+              </p>
             </div>
           ) : (
             <motion.div 
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="text-center"
+              className="text-center px-4"
             >
-              <Users className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">No more profiles</h3>
-              <p className="text-muted-foreground mb-4">Adjust your filters to see more</p>
+              <Users className="w-12 h-12 sm:w-16 sm:h-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg sm:text-xl font-semibold mb-2">No more profiles</h3>
+              <p className="text-sm sm:text-base text-muted-foreground mb-4">Adjust your filters to see more</p>
               <Button onClick={handleClearFilters} className="bg-primary hover:bg-primary/90">
                 Clear Filters
               </Button>
@@ -355,14 +400,14 @@ function ProfileCard({ influencer, matchScore }: { influencer: Influencer; match
   return (
     <div className="h-full flex flex-col bg-gradient-to-b from-card to-card/95">
       {/* Match Badge */}
-      <div className="absolute top-4 right-4 z-10">
-        <Badge className="bg-gradient-to-r from-primary to-accent text-primary-foreground px-4 py-1.5 text-sm font-bold shadow-[0_0_25px_rgba(354,78%,58%,0.6)] border border-primary/30 backdrop-blur-sm">
+      <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10">
+        <Badge className="bg-gradient-to-r from-primary to-accent text-primary-foreground px-3 py-1 text-xs sm:text-sm font-bold shadow-lg border border-primary/30">
           {Math.round(matchScore * 100)}% Match
         </Badge>
       </div>
 
       {/* Profile Image */}
-      <div className="relative h-64 bg-gradient-to-br from-primary/20 via-accent/10 to-primary/10">
+      <div className="relative h-40 sm:h-52 lg:h-56 bg-gradient-to-br from-primary/20 via-accent/10 to-primary/10">
         {influencer.avatar ? (
           <img
             src={influencer.avatar}
@@ -371,8 +416,8 @@ function ProfileCard({ influencer, matchScore }: { influencer: Influencer; match
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center shadow-[0_0_30px_rgba(354,78%,58%,0.4)]">
-              <Users className="w-16 h-16 text-primary" />
+            <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center">
+              <Users className="w-10 h-10 sm:w-14 sm:h-14 text-primary" />
             </div>
           </div>
         )}
@@ -380,79 +425,64 @@ function ProfileCard({ influencer, matchScore }: { influencer: Influencer; match
       </div>
 
       {/* Profile Info */}
-      <div className="flex-1 p-6 space-y-4 overflow-y-auto">
+      <div className="flex-1 p-4 sm:p-5 lg:p-6 space-y-3 sm:space-y-4 overflow-y-auto">
         <div>
-          <h3 className="text-2xl font-bold text-foreground">{influencer.name || influencer.handle}</h3>
-          <p className="text-muted-foreground text-sm">@{influencer.handle}</p>
+          <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">{influencer.name || influencer.handle}</h3>
+          <p className="text-muted-foreground text-xs sm:text-sm">@{influencer.handle}</p>
         </div>
 
         {/* Niche Badge */}
         <div>
-          <Badge variant="secondary" className="text-sm bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors">
+          <Badge variant="secondary" className="text-xs sm:text-sm bg-primary/10 text-primary border border-primary/20">
             {influencer.niches[0]}
           </Badge>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex items-center gap-2 text-sm bg-background/50 rounded-lg px-3 py-2 border border-border/50">
-            <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 text-xs sm:text-sm bg-background/50 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 border border-border/50">
+            <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-primary flex-shrink-0" />
             <span className="truncate">{influencer.audienceGeo[0]}</span>
           </div>
-          <div className="flex items-center gap-2 text-sm bg-background/50 rounded-lg px-3 py-2 border border-border/50">
-            <DollarSign className="w-4 h-4 text-accent flex-shrink-0" />
+          <div className="flex items-center gap-2 text-xs sm:text-sm bg-background/50 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 border border-border/50">
+            <DollarSign className="w-3 h-3 sm:w-4 sm:h-4 text-accent flex-shrink-0" />
             <span>₹{(influencer.pricePerPost / 1000).toFixed(0)}K</span>
           </div>
-          <div className="flex items-center gap-2 text-sm bg-background/50 rounded-lg px-3 py-2 border border-border/50">
-            <Users className="w-4 h-4 text-primary flex-shrink-0" />
+          <div className="flex items-center gap-2 text-xs sm:text-sm bg-background/50 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 border border-border/50">
+            <Users className="w-3 h-3 sm:w-4 sm:h-4 text-primary flex-shrink-0" />
             <span>{(influencer.followers / 1000).toFixed(0)}K</span>
           </div>
-          <div className="flex items-center gap-2 text-sm bg-background/50 rounded-lg px-3 py-2 border border-border/50">
-            <TrendingUp className="w-4 h-4 text-accent flex-shrink-0" />
+          <div className="flex items-center gap-2 text-xs sm:text-sm bg-background/50 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 border border-border/50">
+            <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-accent flex-shrink-0" />
             <span>{influencer.engagementRate}%</span>
           </div>
         </div>
 
-        {/* Bio */}
+        {/* Bio - hide on very small screens */}
         {influencer.bio && (
-          <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">{influencer.bio}</p>
+          <p className="hidden sm:block text-xs sm:text-sm text-muted-foreground line-clamp-2 leading-relaxed">{influencer.bio}</p>
         )}
 
         {/* Mini Insights */}
-        <div className="pt-4 border-t border-border/50">
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <div className="bg-primary/5 rounded-lg py-2 border border-primary/10">
-              <div className="text-xs text-muted-foreground mb-1">Overlap</div>
-              <div className="text-sm font-bold text-primary">
+        <div className="pt-2 sm:pt-3 border-t border-border/50">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 text-center">
+            <div className="bg-primary/5 rounded-lg py-1.5 sm:py-2 border border-primary/10">
+              <div className="text-[10px] sm:text-xs text-muted-foreground mb-0.5">Overlap</div>
+              <div className="text-xs sm:text-sm font-bold text-primary">
                 {Math.round(matchScore * 85)}%
               </div>
             </div>
-            <div className="bg-accent/5 rounded-lg py-2 border border-accent/10">
-              <div className="text-xs text-muted-foreground mb-1">Engagement</div>
-              <div className="text-sm font-bold text-accent">
-                {influencer.engagementRate > 5 ? 'High' : influencer.engagementRate > 2 ? 'Mid' : 'Low'}
+            <div className="bg-accent/5 rounded-lg py-1.5 sm:py-2 border border-accent/10">
+              <div className="text-[10px] sm:text-xs text-muted-foreground mb-0.5">Engagement</div>
+              <div className="text-xs sm:text-sm font-bold text-accent">
+                {influencer.engagementRate}%
               </div>
             </div>
-            <div className="bg-primary/5 rounded-lg py-2 border border-primary/10">
-              <div className="text-xs text-muted-foreground mb-1">Fit</div>
-              <div className="text-sm font-bold text-primary">
-                {matchScore > 0.8 ? 'Great' : matchScore > 0.6 ? 'Good' : 'Fair'}
-              </div>
+            <div className="bg-muted rounded-lg py-1.5 sm:py-2 border border-border/50">
+              <div className="text-[10px] sm:text-xs text-muted-foreground mb-0.5">Response</div>
+              <div className="text-xs sm:text-sm font-bold text-foreground">~2h</div>
             </div>
           </div>
-        </div>
-
-        {/* Platforms */}
-        <div className="flex gap-2 flex-wrap">
-          {influencer.platforms.map(platform => (
-            <Badge 
-              key={platform} 
-              variant="outline" 
-              className="text-xs border-primary/30 text-primary hover:bg-primary/10 transition-colors"
-            >
-              {platform}
-            </Badge>
-          ))}
         </div>
       </div>
     </div>
