@@ -65,7 +65,13 @@ export const Navbar: React.FC = () => {
   const authNavItems = [
     { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
     { label: "Discover", path: "/discover", icon: Compass },
-    { label: "Messages", path: "/messages", icon: MessageSquare, badge: totalUnread },
+    {
+  label: "Messages",
+  path: "/messages",
+  icon: MessageSquare,
+  badge: totalUnread > 0 ? totalUnread : undefined,
+},
+
     { label: "Campaigns", path: "/campaigns", icon: Briefcase },
     { label: "Profile", path: "/profile", icon: User },
   ];
