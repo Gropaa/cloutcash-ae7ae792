@@ -65,12 +65,12 @@ export const Navbar: React.FC = () => {
   const authNavItems = [
     { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
     { label: "Discover", path: "/discover", icon: Compass },
-    {
-  label: "Messages",
-  path: "/messages",
-  icon: MessageSquare,
-  badge: totalUnread > 0 ? totalUnread : undefined,
-},
+//     {
+//   label: "Messages",
+//   path: "/messages",
+//   icon: MessageSquare,
+//   badge: totalUnread > 0 ? totalUnread : undefined,
+// },
 
     { label: "Campaigns", path: "/campaigns", icon: Briefcase },
     { label: "Profile", path: "/profile", icon: User },
@@ -82,7 +82,7 @@ export const Navbar: React.FC = () => {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link
-            to="/"
+            to={user ? "/dashboard" : "/"}
             className="flex items-center space-x-2 transition-opacity hover:opacity-80"
           >
             <img src={logo} alt="CloutCash" className="h-8" />
@@ -109,7 +109,7 @@ export const Navbar: React.FC = () => {
           {/* Auth Nav Links - Desktop only */}
           {user && (
             <div className="hidden lg:flex items-center space-x-1">
-              {authNavItems.slice(0, 4).map((item) => (
+              {authNavItems.slice(0, 3).map((item) => (
                 <Button
                   key={item.path}
                   variant={location.pathname === item.path ? "secondary" : "ghost"}
@@ -119,14 +119,14 @@ export const Navbar: React.FC = () => {
                 >
                   <item.icon className="h-4 w-4 mr-2" />
                   {item.label}
-                  {item.badge && item.badge > 0 && (
+                  {/* {item.badge && item.badge > 0 && (
                     <Badge 
                       variant="destructive" 
                       className="absolute -top-1 -right-1 h-5 min-w-[1.25rem] px-1 text-xs"
                     >
                       {item.badge > 99 ? "99+" : item.badge}
                     </Badge>
-                  )}
+                  )} */}
                 </Button>
               ))}
             </div>
@@ -178,14 +178,14 @@ export const Navbar: React.FC = () => {
                             >
                               <item.icon className="h-5 w-5 mr-3" />
                               {item.label}
-                              {item.badge && item.badge > 0 && (
+                              {/* {item.badge && item.badge > 0 && (
                                 <Badge 
                                   variant="destructive" 
                                   className="ml-auto"
                                 >
                                   {item.badge > 99 ? "99+" : item.badge}
                                 </Badge>
-                              )}
+                              )} */}
                             </Button>
                           </SheetClose>
                         </motion.div>
