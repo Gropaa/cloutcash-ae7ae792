@@ -37,7 +37,7 @@ export default function DiscoverPage() {
   // Filter states
   const [filterNiches, setFilterNiches] = useState('');
   const [filterLocation, setFilterLocation] = useState('');
-  const [filterBudgetRange, setFilterBudgetRange] = useState([0, 100000]);
+  const [filterBudgetRange, setFilterBudgetRange] = useState([0]);
   const [filterEngagement, setFilterEngagement] = useState([0]);
   const [filterFollowers, setFilterFollowers] = useState([0]);
 
@@ -105,7 +105,7 @@ export default function DiscoverPage() {
     await updateFilters({
       niches: filterNiches ? filterNiches.split(',').map(n => n.trim()) : undefined,
       geo: filterLocation ? filterLocation.split(',').map(l => l.trim()) : undefined,
-      maxPrice: filterBudgetRange[1] > 0 ? filterBudgetRange[1] : undefined,
+      maxPrice: filterBudgetRange[0] > 0 ? filterBudgetRange[0] : undefined,
       minEngagement: filterEngagement[0] > 0 ? filterEngagement[0] : undefined,
       minFollowers: filterFollowers[0] > 0 ? filterFollowers[0] : undefined,
     });
@@ -124,7 +124,7 @@ export default function DiscoverPage() {
   const handleClearFilters = () => {
     setFilterNiches('');
     setFilterLocation('');
-    setFilterBudgetRange([0, 100000]);
+    setFilterBudgetRange([0]);
     setFilterEngagement([0]);
     setFilterFollowers([0]);
     updateFilters({});
@@ -171,7 +171,7 @@ export default function DiscoverPage() {
           />
           <div className="flex justify-between text-sm text-muted-foreground mt-2">
             <span>₹{filterBudgetRange[0].toLocaleString()}</span>
-            <span>₹{filterBudgetRange[1].toLocaleString()}</span>
+            
           </div>
         </div>
       </div>
