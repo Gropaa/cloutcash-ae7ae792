@@ -1,13 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, useMotionValue, useTransform, PanInfo, AnimatePresence } from 'framer-motion';
+import { motion, useMotionValue, useTransform, PanInfo } from 'framer-motion';
 import { X, Star, Heart, MapPin, DollarSign, TrendingUp, Users, Loader2, SlidersHorizontal, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useMatchFeed } from '@/hooks/useMatchFeed';
 import { useFeedback } from '@/hooks/useFeedback';
 import { Navbar } from '@/components/Navbar';
@@ -17,13 +23,15 @@ import {
   Sheet,
   SheetContent,
   SheetTrigger,
-  SheetClose,
 } from '@/components/ui/sheet';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+
+// Available filter options from mock data
+const NICHES = ['Fashion', 'Beauty', 'Fitness', 'Food', 'Travel', 'Technology', 'Gaming', 'Lifestyle', 'Health', 'Entertainment'];
+const CITIES = [
+  'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 'Kolkata', 'Pune', 'Ahmedabad',
+  'Jaipur', 'Surat', 'Lucknow', 'Kanpur', 'Nagpur', 'Indore', 'Thane', 'Bhopal',
+  'Visakhapatnam', 'Patna', 'Vadodara', 'Ghaziabad', 'Ludhiana', 'Agra', 'Nashik', 'Coimbatore'
+];
 
 export default function DiscoverPage() {
   const navigate = useNavigate();
@@ -35,7 +43,7 @@ export default function DiscoverPage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   // Filter states
-  const [filterNiches, setFilterNiches] = useState('');
+  const [filterNiche, setFilterNiche] = useState('');
   const [filterLocation, setFilterLocation] = useState('');
   const [filterBudgetRange, setFilterBudgetRange] = useState([0]);
   const [filterEngagement, setFilterEngagement] = useState([0]);
@@ -93,7 +101,6 @@ export default function DiscoverPage() {
     } else if (info.offset.y < -swipeThreshold) {
       handleSwipe('up');
     } else {
-      // Snap back with spring animation
       x.set(0);
       y.set(0);
     }
@@ -102,14 +109,13 @@ export default function DiscoverPage() {
   const handleApplyFilters = async () => {
     setIsApplyingFilters(true);
     
-    await updateFilters({
-      niches: filterNiches ? filterNiches.split(',').map(n => n.trim()) : undefined,
-      geo: filterLocation ? filterLocation.split(',').map(l => l.trim()) : undefined,
+    updateFilters({
+      niches: filterNiche ? [filterNiche] : undefined,
+      geo: filterLocation ? [filterLocation] : undefined,
       maxPrice: filterBudgetRange[0] > 0 ? filterBudgetRange[0] : undefined,
       minEngagement: filterEngagement[0] > 0 ? filterEngagement[0] : undefined,
       minFollowers: filterFollowers[0] > 0 ? filterFollowers[0] : undefined,
     });
-    await refetch();
     
     setCurrentIndex(0);
     setIsApplyingFilters(false);
@@ -117,117 +123,122 @@ export default function DiscoverPage() {
     
     toast({
       title: "Filters Applied",
-      description: "Showing updated results",
+      description: [
+        filterNiche && `Niche: ${filterNiche}`,
+        filterLocation && `Location: ${filterLocation}`,
+        filterBudgetRange[0] > 0 && `Max budget: ₹${filterBudgetRange[0].toLocaleString()}`,
+        filterEngagement[0] > 0 && `Min engagement: ${filterEngagement[0]}%`,
+        filterFollowers[0] > 0 && `Min followers: ${filterFollowers[0].toLocaleString()}`,
+      ].filter(Boolean).join(' • ') || 'Showing all profiles',
     });
   };
 
   const handleClearFilters = () => {
-    setFilterNiches('');
+    setFilterNiche('');
     setFilterLocation('');
     setFilterBudgetRange([0]);
     setFilterEngagement([0]);
     setFilterFollowers([0]);
     updateFilters({});
     setCurrentIndex(0);
-    toast({
-      title: "Filters Cleared",
-      description: "Showing all profiles",
-    });
+    toast({ title: "Filters Cleared", description: "Showing all profiles" });
   };
 
   const FiltersContent = () => (
     <div className="space-y-6">
+      {/* Niche */}
       <div>
-        <Label htmlFor="niche" className="text-sm font-medium">Niche</Label>
-        <Input
-          id="niche"
-          placeholder="e.g., Fashion, Tech"
-          value={filterNiches}
-          onChange={(e) => setFilterNiches(e.target.value)}
-          className="mt-2 bg-background/50"
-        />
+        <Label className="text-sm font-medium">Niche</Label>
+        <Select value={filterNiche} onValueChange={setFilterNiche}>
+          <SelectTrigger className="mt-2 bg-background/50">
+            <SelectValue placeholder="All niches" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All niches</SelectItem>
+            {NICHES.map(n => (
+              <SelectItem key={n} value={n}>{n}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
+      {/* Location */}
       <div>
-        <Label htmlFor="location" className="text-sm font-medium">Location</Label>
-        <Input
-          id="location"
-          placeholder="e.g., Mumbai, Delhi"
-          value={filterLocation}
-          onChange={(e) => setFilterLocation(e.target.value)}
-          className="mt-2 bg-background/50"
-        />
+        <Label className="text-sm font-medium">Location</Label>
+        <Select value={filterLocation} onValueChange={setFilterLocation}>
+          <SelectTrigger className="mt-2 bg-background/50">
+            <SelectValue placeholder="All cities" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All cities</SelectItem>
+            {CITIES.map(c => (
+              <SelectItem key={c} value={c}>{c}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
+      {/* Budget */}
       <div>
-        <Label className="text-sm font-medium">Budget Range (₹/post)</Label>
-        <div className="mt-4 mb-2">
-          <Slider
-            value={filterBudgetRange}
-            onValueChange={setFilterBudgetRange}
-            max={100000}
-            step={5000}
-            className="mt-2"
-          />
-          <div className="flex justify-between text-sm text-muted-foreground mt-2">
-            <span>₹{filterBudgetRange[0].toLocaleString()}</span>
-            
-          </div>
+        <Label className="text-sm font-medium">
+          Max Budget (₹/post){filterBudgetRange[0] > 0 && `: ₹${filterBudgetRange[0].toLocaleString()}`}
+        </Label>
+        <Slider
+          value={filterBudgetRange}
+          onValueChange={setFilterBudgetRange}
+          max={100000}
+          step={5000}
+          className="mt-3"
+        />
+        <div className="flex justify-between text-xs text-muted-foreground mt-1">
+          <span>Any</span>
+          <span>₹1,00,000</span>
         </div>
       </div>
 
+      {/* Engagement */}
       <div>
-        <Label className="text-sm font-medium">Min Engagement Rate (%)</Label>
-        <div className="mt-4 mb-2">
-          <Slider
-            value={filterEngagement}
-            onValueChange={setFilterEngagement}
-            max={20}
-            step={0.5}
-            className="mt-2"
-          />
-          <div className="text-sm text-muted-foreground mt-2">
-            {filterEngagement[0]}%
-          </div>
+        <Label className="text-sm font-medium">
+          Min Engagement Rate{filterEngagement[0] > 0 && `: ${filterEngagement[0]}%`}
+        </Label>
+        <Slider
+          value={filterEngagement}
+          onValueChange={setFilterEngagement}
+          max={10}
+          step={0.5}
+          className="mt-3"
+        />
+        <div className="flex justify-between text-xs text-muted-foreground mt-1">
+          <span>Any</span>
+          <span>10%</span>
         </div>
       </div>
 
+      {/* Followers */}
       <div>
-        <Label className="text-sm font-medium">Min Followers</Label>
-        <div className="mt-4 mb-2">
-          <Slider
-            value={filterFollowers}
-            onValueChange={setFilterFollowers}
-            max={1000000}
-            step={10000}
-            className="mt-2"
-          />
-          <div className="text-sm text-muted-foreground mt-2">
-            {filterFollowers[0].toLocaleString()}
-          </div>
+        <Label className="text-sm font-medium">
+          Min Followers{filterFollowers[0] > 0 && `: ${filterFollowers[0].toLocaleString()}`}
+        </Label>
+        <Slider
+          value={filterFollowers}
+          onValueChange={setFilterFollowers}
+          max={1000000}
+          step={10000}
+          className="mt-3"
+        />
+        <div className="flex justify-between text-xs text-muted-foreground mt-1">
+          <span>Any</span>
+          <span>10L</span>
         </div>
       </div>
 
       <div className="space-y-2 pt-4">
-        <Button 
-          onClick={handleApplyFilters} 
-          className="w-full"
-          disabled={isApplyingFilters}
-        >
+        <Button onClick={handleApplyFilters} className="w-full" disabled={isApplyingFilters}>
           {isApplyingFilters ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Applying...
-            </>
-          ) : (
-            'Apply Filters'
-          )}
+            <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Applying...</>
+          ) : 'Apply Filters'}
         </Button>
-        <Button 
-          onClick={handleClearFilters} 
-          variant="outline" 
-          className="w-full"
-        >
+        <Button onClick={handleClearFilters} variant="outline" className="w-full">
           Clear Filters
         </Button>
       </div>
