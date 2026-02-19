@@ -266,13 +266,17 @@ export function rankCandidates(
   
   if (filters?.niches?.length) {
     filteredCandidates = filteredCandidates.filter(c =>
-      c.niches.some(n => filters.niches!.includes(n))
+      c.niches.some(n =>
+        filters.niches!.some(fn => fn.toLowerCase() === n.toLowerCase())
+      )
     );
   }
   
   if (filters?.geo?.length) {
     filteredCandidates = filteredCandidates.filter(c =>
-      c.audienceGeo.some(g => filters.geo!.includes(g))
+      c.audienceGeo.some(g =>
+        filters.geo!.some(fg => fg.toLowerCase() === g.toLowerCase())
+      )
     );
   }
   
@@ -285,6 +289,12 @@ export function rankCandidates(
   if (filters?.maxPrice) {
     filteredCandidates = filteredCandidates.filter(c =>
       c.pricePerPost <= filters.maxPrice!
+    );
+  }
+
+  if (filters?.minFollowers) {
+    filteredCandidates = filteredCandidates.filter(c =>
+      c.followers >= filters.minFollowers!
     );
   }
   
