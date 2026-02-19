@@ -149,12 +149,15 @@ export default function DiscoverPage() {
       {/* Niche */}
       <div>
         <Label className="text-sm font-medium">Niche</Label>
-        <Select value={filterNiche} onValueChange={setFilterNiche}>
+        <Select
+          value={filterNiche || 'all'}
+          onValueChange={(val) => setFilterNiche(val === 'all' ? '' : val)}
+        >
           <SelectTrigger className="mt-2 bg-background/50">
             <SelectValue placeholder="All niches" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All niches</SelectItem>
+            <SelectItem value="all">All niches</SelectItem>
             {NICHES.map(n => (
               <SelectItem key={n} value={n}>{n}</SelectItem>
             ))}
@@ -165,12 +168,15 @@ export default function DiscoverPage() {
       {/* Location */}
       <div>
         <Label className="text-sm font-medium">Location</Label>
-        <Select value={filterLocation} onValueChange={setFilterLocation}>
+        <Select
+          value={filterLocation || 'all'}
+          onValueChange={(val) => setFilterLocation(val === 'all' ? '' : val)}
+        >
           <SelectTrigger className="mt-2 bg-background/50">
             <SelectValue placeholder="All cities" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All cities</SelectItem>
+            <SelectItem value="all">All cities</SelectItem>
             {CITIES.map(c => (
               <SelectItem key={c} value={c}>{c}</SelectItem>
             ))}
