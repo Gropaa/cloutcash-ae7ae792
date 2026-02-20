@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { computeProfileCompletion } from "@/lib/profileCompletion";
 import { ArrowLeft, Upload, Loader2 } from "lucide-react";
-
+import { formatUsername } from "@/lib/utils";
 export default function ProfileSetupPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -333,19 +333,20 @@ export default function ProfileSetupPage() {
 
           {/* Social Handle (creators only) */}
           {isCreator && (
-            <Card ref={handleRef} className="mb-6 transition-all duration-300">
-              <CardHeader>
-                <CardTitle>Social Handle</CardTitle>
-                <CardDescription>Your primary social media handle</CardDescription>
+            <Card ref={handleRef} className="mb-3 p-3 transition-all duration-300">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Social Handle</CardTitle>
+                <CardDescription className="text-sm">Your primary social media handle</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-2">
                 <Input
                   value={profileData.handle}
                   onChange={(e) =>
-                    setProfileData({ ...profileData, handle: e.target.value })
+                    setProfileData({ ...profileData, handle: e.target.value .replace(/^@+/, ''), })
                   }
                   placeholder="@yourusername"
                 />
+                
               </CardContent>
             </Card>
           )}

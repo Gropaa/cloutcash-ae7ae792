@@ -40,7 +40,7 @@ export const MatchCard = ({
     setIsRequestSent(true);
     onSendRequest();
   };
-
+console.log("HANDLE FROM DB:", matchProfile.handle);
   return (
     <Card className="p-6 hover:shadow-lg transition-all border-primary/20 bg-gradient-to-br from-card to-card/50">
       <div className="flex items-start justify-between mb-4">
@@ -48,7 +48,7 @@ export const MatchCard = ({
           <h3 className="text-xl font-bold mb-1">{matchProfile.full_name}</h3>
           {matchProfile.handle && (
             <p className="text-sm text-muted-foreground mb-2">
-              @{matchProfile.handle}
+            @{matchProfile.handle}
             </p>
           )}
           <div className="flex flex-wrap gap-2 mb-3">

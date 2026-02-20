@@ -277,9 +277,11 @@ export default function DiscoverPage() {
           <h2 className="text-xl font-bold mb-6 text-foreground">Filters</h2>
           <FiltersContent />
         </div>
-
         {/* Main Content - Swipe Cards */}
-        <div className="flex-1 flex flex-col items-center justify-start lg:justify-center p-4 sm:p-6 lg:p-8 bg-background overflow-y-auto">
+        <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 bg-background overflow-hidden">
+
+
+
           {/* Mobile Filter Button */}
           <div className="w-full max-w-md lg:hidden mb-4">
             <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
@@ -302,9 +304,9 @@ export default function DiscoverPage() {
           </div>
 
           {currentCandidate ? (
-            <div className="relative w-full max-w-sm sm:max-w-md">
+            <div className="relative w-full max-w-sm sm:max-w-md flex flex-col h-full max-h-[720px]">
               {/* Card Stack */}
-              <div className="relative h-[450px] sm:h-[520px] lg:h-[580px]">
+              <div className="relative w-full max-w-md h-[590px] sm:h-[700px]">
                 {/* Background cards with stagger effect */}
                 {nextCards.map((candidate, idx) => (
                   <motion.div
@@ -357,34 +359,33 @@ export default function DiscoverPage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex justify-center items-center gap-4 sm:gap-6 mt-6 sm:mt-8">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-destructive hover:bg-destructive/10 transition-all shadow-lg"
-                  onClick={() => handleSwipe('left')}
-                  disabled={isAnimating}
-                >
-                  <X className="w-6 h-6 sm:w-8 sm:h-8 text-destructive" />
-                </Button>
+              <div className="flex justify-center items-center gap-3 mt-3">
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-11 h-11 rounded-full border-2 border-destructive hover:bg-destructive/10 shadow-md"
+              onClick={() => handleSwipe('left')}
+              disabled={isAnimating}
+            >
+               <X className="w-4 h-4 text-destructive" />
+            </Button>
                 
                 <Button
-                  size="lg"
+                  size="sm"
                   variant="outline"
-                  className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-accent hover:bg-accent/10 transition-all shadow-lg"
+                  className="w-11 h-11 rounded-full border-2 border-accent hover:bg-accent/10 shadow-md"
                   onClick={() => handleSwipe('up')}
                   disabled={isAnimating}
                 >
-                  <Star className="w-6 h-6 sm:w-8 sm:h-8 text-accent" />
+                    <Star className="w-4 h-4 text-accent" />
                 </Button>
-                
                 <Button
-                  size="lg"
-                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-primary hover:bg-primary/90 transition-all shadow-lg"
+                  size="sm"
+                  className="w-11 h-11 rounded-full bg-primary hover:bg-primary/90 shadow-md"
                   onClick={() => handleSwipe('right')}
                   disabled={isAnimating}
                 >
-                  <Heart className="w-8 h-8 sm:w-10 sm:h-10 fill-primary-foreground" />
+                 <Heart className="w-5 h-5 fill-primary-foreground" />
                 </Button>
               </div>
 
@@ -417,14 +418,14 @@ function ProfileCard({ influencer, matchScore }: { influencer: Influencer; match
   return (
     <div className="h-full flex flex-col bg-gradient-to-b from-card to-card/95">
       {/* Match Badge */}
-      <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10">
-        <Badge className="bg-gradient-to-r from-primary to-accent text-primary-foreground px-3 py-1 text-xs sm:text-sm font-bold shadow-lg border border-primary/30">
+      <div className="absolute top-2 right-2 z-10">
+        <Badge className="bg-gradient-to-r from-primary to-accent text-primary-foreground px-2 py-0.5 text-[10px] sm:text-sm font-semibold shadow-lg border border-primary/30">
           {Math.round(matchScore * 100)}% Match
         </Badge>
       </div>
 
       {/* Profile Image */}
-      <div className="relative h-40 sm:h-52 lg:h-56 bg-gradient-to-br from-primary/20 via-accent/10 to-primary/10">
+      <div className="relative h-32 sm:h-36 bg-gradient-to-br from-primary/20 via-accent/10 to-primary/10">
         {influencer.avatar ? (
           <img
             src={influencer.avatar}
@@ -433,75 +434,75 @@ function ProfileCard({ influencer, matchScore }: { influencer: Influencer; match
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center">
-              <Users className="w-10 h-10 sm:w-14 sm:h-14 text-primary" />
-            </div>
+            {/* <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center"> */}
+              <Users className="w-10 h-10 text-primary/50" />
+            {/* </div> */}
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
       </div>
 
       {/* Profile Info */}
-      <div className="flex-1 p-4 sm:p-5 lg:p-6 space-y-3 sm:space-y-4 overflow-y-auto">
-        <div>
-          <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">{influencer.name || influencer.handle}</h3>
-          <p className="text-muted-foreground text-xs sm:text-sm">@{influencer.handle}</p>
+      <div className="relative flex-1 p-3 space-y-3 flex-col justify-between">
+        <div className="space-y-1">
+          <h3 className="text-base font-bold leading-tight">{influencer.name || influencer.handle}</h3>
+          <p className="text-muted-foreground text-xs">{influencer.handle}</p>
         </div>
 
         {/* Niche Badge */}
-        <div>
-          <Badge variant="secondary" className="text-xs sm:text-sm bg-primary/10 text-primary border border-primary/20">
+        {/* <div> */}
+          <Badge variant="secondary" className="text-[10px] px-2 py-0.5 w-fit">
             {influencer.niches[0]}
           </Badge>
-        </div>
+        {/* </div> */}
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-2 sm:gap-3">
-          <div className="flex items-center gap-2 text-xs sm:text-sm bg-background/50 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 border border-border/50">
-            <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-primary flex-shrink-0" />
+        <div className="grid grid-cols-2 gap-2 text-[11px]">
+          <div className="flex items-center gap-1 bg-background/40 rounded-md px-2 py-1">
+            <MapPin className="w-3 h-3"/>
             <span className="truncate">{influencer.audienceGeo[0]}</span>
           </div>
-          <div className="flex items-center gap-2 text-xs sm:text-sm bg-background/50 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 border border-border/50">
-            <DollarSign className="w-3 h-3 sm:w-4 sm:h-4 text-accent flex-shrink-0" />
+          <div className="flex items-center gap-1 bg-background/40 rounded-md px-2 py-1">
+            <DollarSign className="w-3 h-3" />
             <span>₹{(influencer.pricePerPost / 1000).toFixed(0)}K</span>
           </div>
-          <div className="flex items-center gap-2 text-xs sm:text-sm bg-background/50 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 border border-border/50">
-            <Users className="w-3 h-3 sm:w-4 sm:h-4 text-primary flex-shrink-0" />
+          <div className="flex items-center gap-1 bg-background/40 rounded-md px-2 py-1">
+            <Users className="w-3 h-3" />
             <span>{(influencer.followers / 1000).toFixed(0)}K</span>
           </div>
-          <div className="flex items-center gap-2 text-xs sm:text-sm bg-background/50 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 border border-border/50">
-            <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-accent flex-shrink-0" />
+          <div className="flex items-center gap-1 bg-background/40 rounded-md px-2 py-1">
+            <TrendingUp className="w-3 h-3"/>
             <span>{influencer.engagementRate}%</span>
           </div>
         </div>
 
         {/* Bio - hide on very small screens */}
         {influencer.bio && (
-          <p className="hidden sm:block text-xs sm:text-sm text-muted-foreground line-clamp-2 leading-relaxed">{influencer.bio}</p>
+          <p className="text-[11px] text-muted-foreground line-clamp-2">{influencer.bio}</p>
         )}
 
         {/* Mini Insights */}
-        <div className="pt-2 sm:pt-3 border-t border-border/50">
-          <div className="grid grid-cols-3 gap-2 sm:gap-3 text-center">
+        {/* <div className="pt-2 sm:pt-3 border-t border-border/50"> */}
+          <div className="grid grid-cols-3 gap-2 text-center text-[10px] pt-2 border-t border-border/50">
             <div className="bg-primary/5 rounded-lg py-1.5 sm:py-2 border border-primary/10">
-              <div className="text-[10px] sm:text-xs text-muted-foreground mb-0.5">Overlap</div>
-              <div className="text-xs sm:text-sm font-bold text-primary">
+              <div className="text-muted-foreground">Overlap</div>
+              <div className="font-semibold">
                 {Math.round(matchScore * 85)}%
               </div>
             </div>
             <div className="bg-accent/5 rounded-lg py-1.5 sm:py-2 border border-accent/10">
-              <div className="text-[10px] sm:text-xs text-muted-foreground mb-0.5">Engagement</div>
-              <div className="text-xs sm:text-sm font-bold text-accent">
+              <div className="text-muted-foreground">Engagement</div>
+              <div className="font-semibold">
                 {influencer.engagementRate}%
               </div>
             </div>
             <div className="bg-muted rounded-lg py-1.5 sm:py-2 border border-border/50">
-              <div className="text-[10px] sm:text-xs text-muted-foreground mb-0.5">Response</div>
-              <div className="text-xs sm:text-sm font-bold text-foreground">~2h</div>
+              <div className="text-muted-foreground">Response</div>
+              <div className="font-semibold">~2h</div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    // </div>
   );
 }
