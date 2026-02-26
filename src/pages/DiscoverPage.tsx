@@ -1,45 +1,29 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useMotionValue, useTransform, PanInfo } from 'framer-motion';
-import { X, Star, Heart, MapPin, DollarSign, TrendingUp, Users, Loader2, SlidersHorizontal, ChevronDown } from 'lucide-react';
+import { X, Star, Heart, MapPin, DollarSign, TrendingUp, Users, Loader2, SlidersHorizontal, ChevronDown, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { useMatchFeed } from '@/hooks/useMatchFeed';
-import { useFeedback } from '@/hooks/useFeedback';
+import { Input } from '@/components/ui/input';
 import { Navbar } from '@/components/Navbar';
-import { Influencer } from '@/types/matchmaking';
 import { toast } from '@/hooks/use-toast';
+import { useDiscoverProfiles, DiscoverProfile } from '@/hooks/useDiscoverProfiles';
+import { useAuth } from '@/hooks/useAuth';
 import {
   Sheet,
   SheetContent,
   SheetTrigger,
 } from '@/components/ui/sheet';
 
-// Available filter options from mock data
-const NICHES = ['Fashion', 'Beauty', 'Fitness', 'Food', 'Travel', 'Technology', 'Gaming', 'Lifestyle', 'Health', 'Entertainment'];
-const CITIES = [
-  'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 'Kolkata', 'Pune', 'Ahmedabad',
-  'Jaipur', 'Surat', 'Lucknow', 'Kanpur', 'Nagpur', 'Indore', 'Thane', 'Bhopal',
-  'Visakhapatnam', 'Patna', 'Vadodara', 'Ghaziabad', 'Ludhiana', 'Agra', 'Nashik', 'Coimbatore'
-];
-
 export default function DiscoverPage() {
   const navigate = useNavigate();
-  const { candidates, loading, fetchMore, hasMore, updateFilters, refetch } = useMatchFeed('brand');
-  const { recordFeedback } = useFeedback();
+  const { user } = useAuth();
+  const { profiles, loading, updateFilters, refetch } = useDiscoverProfiles();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [isApplyingFilters, setIsApplyingFilters] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   // Filter states
@@ -49,53 +33,45 @@ export default function DiscoverPage() {
   const [filterEngagement, setFilterEngagement] = useState([0]);
   const [filterFollowers, setFilterFollowers] = useState([0]);
 
-  // Get current and next cards
-  const currentCandidate = candidates[currentIndex];
-  const nextCards = candidates.slice(currentIndex + 1, currentIndex + 3);
-  
+  // Current and next cards
+  const currentProfile = profiles[currentIndex];
+  const nextCards = profiles.slice(currentIndex + 1, currentIndex + 3);
+
   // Motion values for drag
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const rotate = useTransform(x, [-300, 300], [-15, 15]);
 
-  // Load more candidates when running low
+  // Reset index when profiles change (e.g. after filter)
   useEffect(() => {
-    if (candidates.length - currentIndex < 5 && hasMore && !loading) {
-      fetchMore();
-    }
-  }, [currentIndex, candidates.length, hasMore, loading, fetchMore]);
+    setCurrentIndex(0);
+  }, [profiles]);
 
   const handleSwipe = useCallback((direction: 'left' | 'right' | 'up') => {
-    if (!currentCandidate || isAnimating) return;
+    if (!currentProfile || isAnimating) return;
 
     setIsAnimating(true);
-    const cardId = currentCandidate.item.id;
-    const interactionType = direction === 'right' ? 'like' : direction === 'up' ? 'superlike' : 'pass';
-    
-    recordFeedback(cardId, interactionType);
 
-    // Animate card exit
     const exitX = direction === 'left' ? -500 : direction === 'right' ? 500 : 0;
     const exitY = direction === 'up' ? -500 : 0;
-    
+
     x.set(exitX);
     y.set(exitY);
 
-    // Move to next card after animation
     setTimeout(() => {
       setCurrentIndex(prev => prev + 1);
       x.set(0);
       y.set(0);
       setIsAnimating(false);
     }, 200);
-  }, [currentCandidate, isAnimating, recordFeedback, x, y]);
+  }, [currentProfile, isAnimating, x, y]);
 
   const handleDragEnd = useCallback((event: any, info: PanInfo) => {
     if (isAnimating) return;
 
     const swipeThreshold = 100;
     const velocity = Math.abs(info.velocity.x);
-    
+
     if (Math.abs(info.offset.x) > swipeThreshold || velocity > 500) {
       handleSwipe(info.offset.x > 0 ? 'right' : 'left');
     } else if (info.offset.y < -swipeThreshold) {
@@ -106,21 +82,17 @@ export default function DiscoverPage() {
     }
   }, [isAnimating, handleSwipe, x, y]);
 
-  const handleApplyFilters = async () => {
-    setIsApplyingFilters(true);
-    
+  const handleApplyFilters = () => {
     updateFilters({
-      niches: filterNiche ? [filterNiche] : undefined,
-      geo: filterLocation ? [filterLocation] : undefined,
-      maxPrice: filterBudgetRange[0] > 0 ? filterBudgetRange[0] : undefined,
+      niche: filterNiche || undefined,
+      location: filterLocation || undefined,
+      maxBudget: filterBudgetRange[0] > 0 ? filterBudgetRange[0] : undefined,
       minEngagement: filterEngagement[0] > 0 ? filterEngagement[0] : undefined,
       minFollowers: filterFollowers[0] > 0 ? filterFollowers[0] : undefined,
     });
-    
-    setCurrentIndex(0);
-    setIsApplyingFilters(false);
+
     setFiltersOpen(false);
-    
+
     toast({
       title: "Filters Applied",
       description: [
@@ -140,7 +112,6 @@ export default function DiscoverPage() {
     setFilterEngagement([0]);
     setFilterFollowers([0]);
     updateFilters({});
-    setCurrentIndex(0);
     toast({ title: "Filters Cleared", description: "Showing all profiles" });
   };
 
@@ -149,56 +120,40 @@ export default function DiscoverPage() {
       {/* Niche */}
       <div>
         <Label className="text-sm font-medium">Niche</Label>
-        <Select
-          value={filterNiche || 'all'}
-          onValueChange={(val) => setFilterNiche(val === 'all' ? '' : val)}
-        >
-          <SelectTrigger className="mt-2 bg-background/50">
-            <SelectValue placeholder="All niches" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All niches</SelectItem>
-            {NICHES.map(n => (
-              <SelectItem key={n} value={n}>{n}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Input
+          placeholder="e.g. Fashion, Tech, Food..."
+          value={filterNiche}
+          onChange={(e) => setFilterNiche(e.target.value)}
+          className="mt-2 bg-background/50"
+        />
       </div>
 
       {/* Location */}
       <div>
         <Label className="text-sm font-medium">Location</Label>
-        <Select
-          value={filterLocation || 'all'}
-          onValueChange={(val) => setFilterLocation(val === 'all' ? '' : val)}
-        >
-          <SelectTrigger className="mt-2 bg-background/50">
-            <SelectValue placeholder="All cities" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All cities</SelectItem>
-            {CITIES.map(c => (
-              <SelectItem key={c} value={c}>{c}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Input
+          placeholder="e.g. Mumbai, Delhi..."
+          value={filterLocation}
+          onChange={(e) => setFilterLocation(e.target.value)}
+          className="mt-2 bg-background/50"
+        />
       </div>
 
       {/* Budget */}
       <div>
         <Label className="text-sm font-medium">
-          Max Budget (₹/post){filterBudgetRange[0] > 0 && `: ₹${filterBudgetRange[0].toLocaleString()}`}
+          Max Budget (₹){filterBudgetRange[0] > 0 && `: ₹${filterBudgetRange[0].toLocaleString()}`}
         </Label>
         <Slider
           value={filterBudgetRange}
           onValueChange={setFilterBudgetRange}
-          max={100000}
-          step={5000}
+          max={1000000}
+          step={10000}
           className="mt-3"
         />
         <div className="flex justify-between text-xs text-muted-foreground mt-1">
           <span>Any</span>
-          <span>₹1,00,000</span>
+          <span>₹10,00,000</span>
         </div>
       </div>
 
@@ -239,10 +194,8 @@ export default function DiscoverPage() {
       </div>
 
       <div className="space-y-2 pt-4">
-        <Button onClick={handleApplyFilters} className="w-full" disabled={isApplyingFilters}>
-          {isApplyingFilters ? (
-            <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Applying...</>
-          ) : 'Apply Filters'}
+        <Button onClick={handleApplyFilters} className="w-full">
+          Apply Filters
         </Button>
         <Button onClick={handleClearFilters} variant="outline" className="w-full">
           Clear Filters
@@ -251,16 +204,14 @@ export default function DiscoverPage() {
     </div>
   );
 
-  if ((loading && candidates.length === 0) || isApplyingFilters) {
+  if (loading && profiles.length === 0) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
         <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
           <div className="text-center">
             <Loader2 className="animate-spin h-12 w-12 text-primary mx-auto mb-4" />
-            <p className="text-muted-foreground">
-              {isApplyingFilters ? 'Applying filters...' : 'Loading profiles...'}
-            </p>
+            <p className="text-muted-foreground">Loading profiles...</p>
           </div>
         </div>
       </div>
@@ -270,18 +221,16 @@ export default function DiscoverPage() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      
+
       <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)]">
-        {/* Desktop Sidebar - Hidden on mobile */}
+        {/* Desktop Sidebar */}
         <div className="hidden lg:block w-80 border-r border-border bg-card/50 backdrop-blur-sm p-6 overflow-y-auto">
           <h2 className="text-xl font-bold mb-6 text-foreground">Filters</h2>
           <FiltersContent />
         </div>
-        {/* Main Content - Swipe Cards */}
+
+        {/* Main Content */}
         <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 bg-background overflow-hidden">
-
-
-
           {/* Mobile Filter Button */}
           <div className="w-full max-w-md lg:hidden mb-4">
             <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
@@ -303,21 +252,20 @@ export default function DiscoverPage() {
             </Sheet>
           </div>
 
-          {currentCandidate ? (
+          {currentProfile ? (
             <div className="relative w-full max-w-sm sm:max-w-md flex flex-col h-full max-h-[720px]">
-              {/* Card Stack */}
               <div className="relative w-full max-w-md h-[590px] sm:h-[700px]">
-                {/* Background cards with stagger effect */}
-                {nextCards.map((candidate, idx) => (
+                {/* Background cards */}
+                {nextCards.map((profile, idx) => (
                   <motion.div
-                    key={candidate.item.id}
+                    key={profile.id}
                     initial={false}
-                    animate={{ 
-                      scale: 1 - (idx + 1) * 0.04, 
+                    animate={{
+                      scale: 1 - (idx + 1) * 0.04,
                       y: (idx + 1) * 8,
-                      opacity: 1 - (idx + 1) * 0.2 
+                      opacity: 1 - (idx + 1) * 0.2,
                     }}
-                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    transition={{ duration: 0.2, ease: 'easeOut' }}
                     className="absolute inset-0 pointer-events-none"
                     style={{ zIndex: -idx - 1 }}
                   >
@@ -327,24 +275,11 @@ export default function DiscoverPage() {
 
                 {/* Active card */}
                 <motion.div
-                  key={currentCandidate.item.id}
+                  key={currentProfile.id}
                   initial={{ scale: 0.95, opacity: 0 }}
-                  animate={{ 
-                    scale: 1, 
-                    opacity: 1,
-                    x: x.get(),
-                    y: y.get(),
-                  }}
-                  transition={{ 
-                    type: "spring", 
-                    stiffness: 400, 
-                    damping: 30,
-                  }}
-                  style={{
-                    x,
-                    y,
-                    rotate,
-                  }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  style={{ x, y, rotate }}
                   drag={!isAnimating}
                   dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
                   dragElastic={0.9}
@@ -353,23 +288,22 @@ export default function DiscoverPage() {
                   className="absolute inset-0 cursor-grab touch-none"
                 >
                   <Card className="h-full bg-card border border-primary/20 rounded-2xl overflow-hidden shadow-lg">
-                    <ProfileCard influencer={currentCandidate.item} matchScore={currentCandidate.score} />
+                    <RealProfileCard profile={currentProfile} />
                   </Card>
                 </motion.div>
               </div>
 
               {/* Action Buttons */}
               <div className="flex justify-center items-center gap-3 mt-3">
-            <Button
-              size="sm"
-              variant="outline"
-              className="w-11 h-11 rounded-full border-2 border-destructive hover:bg-destructive/10 shadow-md"
-              onClick={() => handleSwipe('left')}
-              disabled={isAnimating}
-            >
-               <X className="w-4 h-4 text-destructive" />
-            </Button>
-                
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-11 h-11 rounded-full border-2 border-destructive hover:bg-destructive/10 shadow-md"
+                  onClick={() => handleSwipe('left')}
+                  disabled={isAnimating}
+                >
+                  <X className="w-4 h-4 text-destructive" />
+                </Button>
                 <Button
                   size="sm"
                   variant="outline"
@@ -377,7 +311,7 @@ export default function DiscoverPage() {
                   onClick={() => handleSwipe('up')}
                   disabled={isAnimating}
                 >
-                    <Star className="w-4 h-4 text-accent" />
+                  <Star className="w-4 h-4 text-accent" />
                 </Button>
                 <Button
                   size="sm"
@@ -385,27 +319,30 @@ export default function DiscoverPage() {
                   onClick={() => handleSwipe('right')}
                   disabled={isAnimating}
                 >
-                 <Heart className="w-5 h-5 fill-primary-foreground" />
+                  <Heart className="w-5 h-5 fill-primary-foreground" />
                 </Button>
               </div>
 
-              {/* Swipe hints - mobile only */}
               <p className="text-center text-xs text-muted-foreground mt-4 lg:hidden">
                 Swipe right to like • Swipe left to pass
               </p>
             </div>
           ) : (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               className="text-center px-4"
             >
               <Users className="w-12 h-12 sm:w-16 sm:h-16 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg sm:text-xl font-semibold mb-2">No more profiles</h3>
-              <p className="text-sm sm:text-base text-muted-foreground mb-4">Adjust your filters to see more</p>
-              <Button onClick={handleClearFilters} className="bg-primary hover:bg-primary/90">
-                Clear Filters
-              </Button>
+              <p className="text-sm sm:text-base text-muted-foreground mb-4">
+                {profiles.length === 0 ? 'No users have joined yet. Invite others to the platform!' : 'Adjust your filters to see more'}
+              </p>
+              {profiles.length > 0 && (
+                <Button onClick={handleClearFilters} className="bg-primary hover:bg-primary/90">
+                  Clear Filters
+                </Button>
+              )}
             </motion.div>
           )}
         </div>
@@ -414,95 +351,111 @@ export default function DiscoverPage() {
   );
 }
 
-function ProfileCard({ influencer, matchScore }: { influencer: Influencer; matchScore: number }) {
+function RealProfileCard({ profile }: { profile: DiscoverProfile }) {
+  const initials = profile.full_name
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+
   return (
     <div className="h-full flex flex-col bg-gradient-to-b from-card to-card/95">
-      {/* Match Badge */}
+      {/* User Type Badge */}
       <div className="absolute top-2 right-2 z-10">
         <Badge className="bg-gradient-to-r from-primary to-accent text-primary-foreground px-2 py-0.5 text-[10px] sm:text-sm font-semibold shadow-lg border border-primary/30">
-          {Math.round(matchScore * 100)}% Match
+          {profile.user_type === 'creator' ? '🎨 Creator' : '🏢 Brand'}
         </Badge>
       </div>
 
-      {/* Profile Image */}
-      <div className="relative h-32 sm:h-36 bg-gradient-to-br from-primary/20 via-accent/10 to-primary/10">
-        {influencer.avatar ? (
+      {/* Profile Image / Avatar */}
+      <div className="relative h-40 sm:h-48 bg-gradient-to-br from-primary/20 via-accent/10 to-primary/10">
+        {profile.avatar_url ? (
           <img
-            src={influencer.avatar}
-            alt={influencer.name || influencer.handle}
+            src={profile.avatar_url}
+            alt={profile.full_name}
             className="w-full h-full object-cover"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            {/* <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center"> */}
-              <Users className="w-10 h-10 text-primary/50" />
-            {/* </div> */}
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/40 to-accent/40 flex items-center justify-center text-2xl font-bold text-primary-foreground">
+              {initials}
+            </div>
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
       </div>
 
       {/* Profile Info */}
-      <div className="relative flex-1 p-3 space-y-3 flex-col justify-between">
+      <div className="relative flex-1 p-4 space-y-3">
         <div className="space-y-1">
-          <h3 className="text-base font-bold leading-tight">{influencer.name || influencer.handle}</h3>
-          <p className="text-muted-foreground text-xs">{influencer.handle}</p>
+          <h3 className="text-lg font-bold leading-tight">{profile.full_name}</h3>
+          {profile.handle && (
+            <p className="text-muted-foreground text-xs">@{profile.handle}</p>
+          )}
         </div>
 
         {/* Niche Badge */}
-        {/* <div> */}
+        {profile.niche && (
           <Badge variant="secondary" className="text-[10px] px-2 py-0.5 w-fit">
-            {influencer.niches[0]}
+            {profile.niche}
           </Badge>
-        {/* </div> */}
+        )}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-2 text-[11px]">
-          <div className="flex items-center gap-1 bg-background/40 rounded-md px-2 py-1">
-            <MapPin className="w-3 h-3"/>
-            <span className="truncate">{influencer.audienceGeo[0]}</span>
-          </div>
-          <div className="flex items-center gap-1 bg-background/40 rounded-md px-2 py-1">
-            <DollarSign className="w-3 h-3" />
-            <span>₹{(influencer.pricePerPost / 1000).toFixed(0)}K</span>
-          </div>
-          <div className="flex items-center gap-1 bg-background/40 rounded-md px-2 py-1">
-            <Users className="w-3 h-3" />
-            <span>{(influencer.followers / 1000).toFixed(0)}K</span>
-          </div>
-          <div className="flex items-center gap-1 bg-background/40 rounded-md px-2 py-1">
-            <TrendingUp className="w-3 h-3"/>
-            <span>{influencer.engagementRate}%</span>
-          </div>
+          {profile.location && (
+            <div className="flex items-center gap-1 bg-background/40 rounded-md px-2 py-1">
+              <MapPin className="w-3 h-3" />
+              <span className="truncate">{profile.location}</span>
+            </div>
+          )}
+          {profile.user_type === 'creator' && profile.follower_count != null && (
+            <div className="flex items-center gap-1 bg-background/40 rounded-md px-2 py-1">
+              <Users className="w-3 h-3" />
+              <span>{(profile.follower_count / 1000).toFixed(0)}K followers</span>
+            </div>
+          )}
+          {profile.user_type === 'creator' && profile.engagement_rate != null && (
+            <div className="flex items-center gap-1 bg-background/40 rounded-md px-2 py-1">
+              <TrendingUp className="w-3 h-3" />
+              <span>{profile.engagement_rate}% ER</span>
+            </div>
+          )}
+          {profile.user_type === 'brand' && profile.marketing_budget != null && (
+            <div className="flex items-center gap-1 bg-background/40 rounded-md px-2 py-1">
+              <DollarSign className="w-3 h-3" />
+              <span>₹{(profile.marketing_budget / 1000).toFixed(0)}K budget</span>
+            </div>
+          )}
+          {profile.website && (
+            <div className="flex items-center gap-1 bg-background/40 rounded-md px-2 py-1">
+              <Globe className="w-3 h-3" />
+              <span className="truncate">{profile.website.replace(/^https?:\/\//, '')}</span>
+            </div>
+          )}
         </div>
 
-        {/* Bio - hide on very small screens */}
-        {influencer.bio && (
-          <p className="text-[11px] text-muted-foreground line-clamp-2">{influencer.bio}</p>
+        {/* Bio */}
+        {profile.bio && (
+          <p className="text-[11px] text-muted-foreground line-clamp-3">{profile.bio}</p>
         )}
 
-        {/* Mini Insights */}
-        {/* <div className="pt-2 sm:pt-3 border-t border-border/50"> */}
-          <div className="grid grid-cols-3 gap-2 text-center text-[10px] pt-2 border-t border-border/50">
-            <div className="bg-primary/5 rounded-lg py-1.5 sm:py-2 border border-primary/10">
-              <div className="text-muted-foreground">Overlap</div>
-              <div className="font-semibold">
-                {Math.round(matchScore * 85)}%
-              </div>
-            </div>
-            <div className="bg-accent/5 rounded-lg py-1.5 sm:py-2 border border-accent/10">
-              <div className="text-muted-foreground">Engagement</div>
-              <div className="font-semibold">
-                {influencer.engagementRate}%
-              </div>
-            </div>
-            <div className="bg-muted rounded-lg py-1.5 sm:py-2 border border-border/50">
-              <div className="text-muted-foreground">Response</div>
-              <div className="font-semibold">~2h</div>
-            </div>
-          </div>
+        {/* View Profile Button */}
+        <div className="pt-2 border-t border-border/50">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full text-xs"
+            onClick={(e) => {
+              e.stopPropagation();
+              window.open(`/profile/${profile.id}`, '_blank');
+            }}
+          >
+            View Full Profile
+          </Button>
         </div>
       </div>
-    // </div>
+    </div>
   );
 }
