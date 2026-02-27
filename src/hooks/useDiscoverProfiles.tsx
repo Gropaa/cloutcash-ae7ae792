@@ -31,16 +31,34 @@ export function useDiscoverProfiles() {
   const [profiles, setProfiles] = useState<DiscoverProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<DiscoverFilters>({});
+  const [currentUserType, setCurrentUserType] = useState<string | null>(null);
+
+  // Fetch current user's type
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('profiles')
+      .select('user_type')
+      .eq('user_id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (data) setCurrentUserType(data.user_type);
+      });
+  }, [user]);
 
   const fetchProfiles = useCallback(async (currentFilters: DiscoverFilters = {}) => {
-    if (!user) return;
+    if (!user || !currentUserType) return;
 
     setLoading(true);
     try {
+      // Show opposite type: brands see creators, creators see brands
+      const targetType = currentUserType === 'brand' ? 'creator' : 'brand';
+
       let query = supabase
         .from('profiles')
         .select('id, user_id, full_name, handle, avatar_url, bio, niche, location, follower_count, engagement_rate, marketing_budget, user_type, website')
-        .neq('user_id', user.id); // Exclude current user
+        .neq('user_id', user.id)
+        .eq('user_type', targetType);
 
       // Apply filters
       if (currentFilters.niche) {
@@ -72,7 +90,7 @@ export function useDiscoverProfiles() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, currentUserType]);
 
   const updateFilters = useCallback((newFilters: DiscoverFilters) => {
     setFilters(newFilters);
@@ -84,10 +102,10 @@ export function useDiscoverProfiles() {
   }, [fetchProfiles, filters]);
 
   useEffect(() => {
-    if (user) {
+    if (user && currentUserType) {
       fetchProfiles(filters);
     }
-  }, [user]);
+  }, [user, currentUserType]);
 
   return {
     profiles,
