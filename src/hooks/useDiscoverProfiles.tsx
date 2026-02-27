@@ -90,7 +90,7 @@ export function useDiscoverProfiles() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, currentUserType]);
 
   const updateFilters = useCallback((newFilters: DiscoverFilters) => {
     setFilters(newFilters);
